@@ -10,8 +10,6 @@ interface Rocon
         },
     ]
 
-# https://github.com/lukewilliamboswell/roc-json/blob/main/package/Core.roc
-
 Rocon := {}
     implements [
         EncoderFormatting {
