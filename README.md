@@ -1,4 +1,4 @@
-# RocON
+# .rvn (Raven)
 
 A data notation language based off [Roc][].
 

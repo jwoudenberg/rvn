@@ -1,3 +1,3 @@
-package "rocon"
-    exposes [Rocon]
+package "rvn"
+    exposes [Rvn]
     packages {}

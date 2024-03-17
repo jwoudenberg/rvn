@@ -1,7 +1,7 @@
-interface Rocon
+interface Rvn
     exposes [
-        Rocon,
-        rocon,
+        Rvn,
+        rvn,
     ]
     imports [
         Encode.{
@@ -10,7 +10,7 @@ interface Rocon
         },
     ]
 
-Rocon := {}
+Rvn := {}
     implements [
         EncoderFormatting {
             u8: encodeU8,
@@ -55,73 +55,73 @@ Rocon := {}
         },
     ]
 
-rocon : Rocon
-rocon = @Rocon {}
+rvn : Rvn
+rvn = @Rvn {}
 
 numToBytes = \n ->
     n |> Num.toStr |> Str.toUtf8
 
 encodeU8 = \n ->
-    Encode.custom \bytes, @Rocon {} ->
+    Encode.custom \bytes, @Rvn {} ->
         List.concat bytes (numToBytes n)
 
 encodeU16 = \n ->
-    Encode.custom \bytes, @Rocon {} ->
+    Encode.custom \bytes, @Rvn {} ->
         List.concat bytes (numToBytes n)
 
 encodeU32 = \n ->
-    Encode.custom \bytes, @Rocon {} ->
+    Encode.custom \bytes, @Rvn {} ->
         List.concat bytes (numToBytes n)
 
 encodeU64 = \n ->
-    Encode.custom \bytes, @Rocon {} ->
+    Encode.custom \bytes, @Rvn {} ->
         List.concat bytes (numToBytes n)
 
 encodeU128 = \n ->
-    Encode.custom \bytes, @Rocon {} ->
+    Encode.custom \bytes, @Rvn {} ->
         List.concat bytes (numToBytes n)
 
 encodeI8 = \n ->
-    Encode.custom \bytes, @Rocon {} ->
+    Encode.custom \bytes, @Rvn {} ->
         List.concat bytes (numToBytes n)
 
 encodeI16 = \n ->
-    Encode.custom \bytes, @Rocon {} ->
+    Encode.custom \bytes, @Rvn {} ->
         List.concat bytes (numToBytes n)
 
 encodeI32 = \n ->
-    Encode.custom \bytes, @Rocon {} ->
+    Encode.custom \bytes, @Rvn {} ->
         List.concat bytes (numToBytes n)
 
 encodeI64 = \n ->
-    Encode.custom \bytes, @Rocon {} ->
+    Encode.custom \bytes, @Rvn {} ->
         List.concat bytes (numToBytes n)
 
 encodeI128 = \n ->
-    Encode.custom \bytes, @Rocon {} ->
+    Encode.custom \bytes, @Rvn {} ->
         List.concat bytes (numToBytes n)
 
 encodeF32 = \n ->
-    Encode.custom \bytes, @Rocon {} ->
+    Encode.custom \bytes, @Rvn {} ->
         List.concat bytes (numToBytes n)
 
 encodeF64 = \n ->
-    Encode.custom \bytes, @Rocon {} ->
+    Encode.custom \bytes, @Rvn {} ->
         List.concat bytes (numToBytes n)
 
 encodeDec = \n ->
-    Encode.custom \bytes, @Rocon {} ->
+    Encode.custom \bytes, @Rvn {} ->
         List.concat bytes (numToBytes n)
 
 encodeBool = \byte ->
-    Encode.custom \bytes, @Rocon {} ->
+    Encode.custom \bytes, @Rvn {} ->
         if byte then
             List.concat bytes (Str.toUtf8 "Bool.true")
         else
             List.concat bytes (Str.toUtf8 "Bool.false")
 
 encodeString = \str ->
-    Encode.custom \bytes, @Rocon {} ->
+    Encode.custom \bytes, @Rvn {} ->
         strBytes = Str.toUtf8 str
 
         encodeSliceWithoutEscaping = \{ start, len, acc } -> {
@@ -163,41 +163,41 @@ encodeString = \str ->
 
 expect
     str = "abc"
-    actual = Encode.toBytes str rocon
+    actual = Encode.toBytes str rvn
     expected = ['"', 'a', 'b', 'c', '"']
     actual == expected
 
 expect
     str = "a\nc"
-    actual = Encode.toBytes str rocon
+    actual = Encode.toBytes str rvn
     expected = ['"', 'a', '\\', 'n', 'c', '"']
     actual == expected
 
 expect
     str = "a\tc"
-    actual = Encode.toBytes str rocon
+    actual = Encode.toBytes str rvn
     expected = ['"', 'a', '\\', 't', 'c', '"']
     actual == expected
 
 expect
     str = "a\"c"
-    actual = Encode.toBytes str rocon
+    actual = Encode.toBytes str rvn
     expected = ['"', 'a', '\\', '"', 'c', '"']
     actual == expected
 
 expect
     str = "a\\c"
-    actual = Encode.toBytes str rocon
+    actual = Encode.toBytes str rvn
     expected = ['"', 'a', '\\', '\\', 'c', '"']
     actual == expected
 
 expect
     str = "a\$c"
-    actual = Encode.toBytes str rocon
+    actual = Encode.toBytes str rvn
     expected = ['"', 'a', '\\', '$', 'c', '"']
     actual == expected
 
-encodeList : List elem, (elem -> Encoder Rocon) -> Encoder Rocon
+encodeList : List elem, (elem -> Encoder Rvn) -> Encoder Rvn
 encodeList = \list, encodeElem ->
     Encode.custom \bytes, fmt ->
         addEncodedElem = \acc, elem ->
@@ -213,17 +213,17 @@ encodeList = \list, encodeElem ->
 expect
     list : List U16
     list = []
-    actual = Encode.toBytes list rocon
+    actual = Encode.toBytes list rvn
     expected = ['[', ']']
     actual == expected
 
 expect
     list = [1, 2, 3]
-    actual = Encode.toBytes list rocon
+    actual = Encode.toBytes list rvn
     expected = ['[', '1', ',', '2', ',', '3', ',', ']']
     actual == expected
 
-encodeRecord : List { key : Str, value : Encoder Rocon } -> Encoder Rocon
+encodeRecord : List { key : Str, value : Encoder Rvn } -> Encoder Rvn
 encodeRecord = \fields ->
     Encode.custom \bytes, fmt ->
         addEncodedField = \acc, { key, value } ->
@@ -240,17 +240,17 @@ encodeRecord = \fields ->
 
 expect
     record = {}
-    actual = Encode.toBytes record rocon
+    actual = Encode.toBytes record rvn
     expected = ['{', '}']
     actual == expected
 
 expect
     record = { one: 1, two: 2 }
-    actual = Encode.toBytes record rocon
+    actual = Encode.toBytes record rvn
     expected = ['{', 'o', 'n', 'e', ':', '1', ',', 't', 'w', 'o', ':', '2', ',', '}']
     actual == expected
 
-encodeTuple : List (Encoder Rocon) -> Encoder Rocon
+encodeTuple : List (Encoder Rvn) -> Encoder Rvn
 encodeTuple = \elems ->
     Encode.custom \bytes, fmt ->
         addEncodedElem = \acc, elem ->
@@ -265,11 +265,11 @@ encodeTuple = \elems ->
 
 expect
     tuple = (1, 2)
-    actual = Encode.toBytes tuple rocon
+    actual = Encode.toBytes tuple rvn
     expected = ['(', '1', ',', '2', ',', ')']
     actual == expected
 
-encodeTag : Str, List (Encoder Rocon) -> Encoder Rocon
+encodeTag : Str, List (Encoder Rvn) -> Encoder Rvn
 encodeTag = \tag, attrs ->
     Encode.custom \bytes, fmt ->
         addEncodedAttr = \acc, elem ->
@@ -284,7 +284,7 @@ encodeTag = \tag, attrs ->
 
 expect
     tagged = Foo 1 2
-    actual = Encode.toBytes tagged rocon
+    actual = Encode.toBytes tagged rvn
     expected = ['F', 'o', 'o', '(', '1', ')', '(', '2', ')']
     actual == expected
 
@@ -336,28 +336,28 @@ isHexDigit = \byte ->
     || (byte >= 'a' && byte <= 'f')
     || (byte >= 'A' && byte <= 'F')
 
-decodeU8 : Decoder U8 Rocon
-decodeU8 = Decode.custom \bytes, @Rocon {} -> decodeInt bytes Str.toU8
+decodeU8 : Decoder U8 Rvn
+decodeU8 = Decode.custom \bytes, @Rvn {} -> decodeInt bytes Str.toU8
 
 expect
     # Parse decimal numbers
     bytes = ['2', '3', 'X']
     expected = { result: Ok (Num.toU8 23), rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     actual == expected
 
 expect
     # Parse binary numbers
     bytes = ['0', 'b', '1', '0', '1', 'X']
     expected = { result: Ok (Num.toU8 5), rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     actual == expected
 
 expect
     # Parse hex numbers
     bytes = ['0', 'x', '1', 'a', 'X']
     expected = { result: Ok (Num.toU8 26), rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     actual == expected
 
 expect
@@ -365,7 +365,7 @@ expect
     bytes = ['9', '9', '9']
     expected : DecodeResult U8
     expected = { result: Err TooShort, rest: [] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     actual == expected
 
 expect
@@ -373,63 +373,63 @@ expect
     bytes = ['X']
     expected : DecodeResult U8
     expected = { result: Err TooShort, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     actual == expected
 
-decodeU16 : Decoder U16 Rocon
-decodeU16 = Decode.custom \bytes, @Rocon {} -> decodeInt bytes Str.toU16
+decodeU16 : Decoder U16 Rvn
+decodeU16 = Decode.custom \bytes, @Rvn {} -> decodeInt bytes Str.toU16
 
-decodeU32 : Decoder U32 Rocon
-decodeU32 = Decode.custom \bytes, @Rocon {} -> decodeInt bytes Str.toU32
+decodeU32 : Decoder U32 Rvn
+decodeU32 = Decode.custom \bytes, @Rvn {} -> decodeInt bytes Str.toU32
 
-decodeU64 : Decoder U64 Rocon
-decodeU64 = Decode.custom \bytes, @Rocon {} -> decodeInt bytes Str.toU64
+decodeU64 : Decoder U64 Rvn
+decodeU64 = Decode.custom \bytes, @Rvn {} -> decodeInt bytes Str.toU64
 
-decodeU128 : Decoder U128 Rocon
-decodeU128 = Decode.custom \bytes, @Rocon {} -> decodeInt bytes Str.toU128
+decodeU128 : Decoder U128 Rvn
+decodeU128 = Decode.custom \bytes, @Rvn {} -> decodeInt bytes Str.toU128
 
-decodeI8 : Decoder I8 Rocon
-decodeI8 = Decode.custom \bytes, @Rocon {} -> decodeInt bytes Str.toI8
+decodeI8 : Decoder I8 Rvn
+decodeI8 = Decode.custom \bytes, @Rvn {} -> decodeInt bytes Str.toI8
 
 expect
     # Parse positive numbers
     bytes = ['2', '3', 'X']
     expected = { result: Ok (Num.toI8 23), rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     actual == expected
 
 expect
     # Parse negative numbers
     bytes = ['-', '0', 'b', '1', '0', '1', 'X']
     expected = { result: Ok (Num.toI8 -5), rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     actual == expected
 
 expect
     # Parse negative binary numbers
     bytes = ['-', '2', '3', 'X']
     expected = { result: Ok (Num.toI8 -23), rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     actual == expected
 
 expect
     # Parse negative hex numbers
     bytes = ['-', '0', 'x', '1', 'a', 'X']
     expected = { result: Ok (Num.toI8 -26), rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     actual == expected
 
-decodeI16 : Decoder I16 Rocon
-decodeI16 = Decode.custom \bytes, @Rocon {} -> decodeInt bytes Str.toI16
+decodeI16 : Decoder I16 Rvn
+decodeI16 = Decode.custom \bytes, @Rvn {} -> decodeInt bytes Str.toI16
 
-decodeI32 : Decoder I32 Rocon
-decodeI32 = Decode.custom \bytes, @Rocon {} -> decodeInt bytes Str.toI32
+decodeI32 : Decoder I32 Rvn
+decodeI32 = Decode.custom \bytes, @Rvn {} -> decodeInt bytes Str.toI32
 
-decodeI64 : Decoder I64 Rocon
-decodeI64 = Decode.custom \bytes, @Rocon {} -> decodeInt bytes Str.toI64
+decodeI64 : Decoder I64 Rvn
+decodeI64 = Decode.custom \bytes, @Rvn {} -> decodeInt bytes Str.toI64
 
-decodeI128 : Decoder I128 Rocon
-decodeI128 = Decode.custom \bytes, @Rocon {} -> decodeInt bytes Str.toI128
+decodeI128 : Decoder I128 Rvn
+decodeI128 = Decode.custom \bytes, @Rvn {} -> decodeInt bytes Str.toI128
 
 decodeFloat = \bytes, fromStr ->
     countMinusSign =
@@ -460,14 +460,14 @@ decodeFloat = \bytes, fromStr ->
 
     decodeUtf8Bytes bytes fromStr len
 
-decodeF32 : Decoder F32 Rocon
-decodeF32 = Decode.custom \bytes, @Rocon {} -> decodeFloat bytes Str.toF32
+decodeF32 : Decoder F32 Rvn
+decodeF32 = Decode.custom \bytes, @Rvn {} -> decodeFloat bytes Str.toF32
 
-decodeF64 : Decoder F64 Rocon
-decodeF64 = Decode.custom \bytes, @Rocon {} -> decodeFloat bytes Str.toF64
+decodeF64 : Decoder F64 Rvn
+decodeF64 = Decode.custom \bytes, @Rvn {} -> decodeFloat bytes Str.toF64
 
-decodeDec : Decoder Dec Rocon
-decodeDec = Decode.custom \bytes, @Rocon {} -> decodeFloat bytes Str.toDec
+decodeDec : Decoder Dec Rvn
+decodeDec = Decode.custom \bytes, @Rvn {} -> decodeFloat bytes Str.toDec
 
 expect
     # Parse positive numbers
@@ -475,7 +475,7 @@ expect
     n : Dec
     n = 23
     expected = { result: Ok n, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
 expect
@@ -484,7 +484,7 @@ expect
     n : Dec
     n = -23
     expected = { result: Ok n, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
 expect
@@ -493,7 +493,7 @@ expect
     n : Dec
     n = 12.34
     expected = { result: Ok n, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
 expect
@@ -501,12 +501,12 @@ expect
     bytes = ['X']
     expected : DecodeResult Dec
     expected = { result: Err TooShort, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
-decodeBool : Decoder Bool Rocon
+decodeBool : Decoder Bool Rvn
 decodeBool =
-    Decode.custom \bytes, @Rocon {} ->
+    Decode.custom \bytes, @Rvn {} ->
         when bytes is
             ['B', 'o', 'o', 'l', '.', 't', 'r', 'u', 'e', .. as rest] ->
                 { result: Ok Bool.true, rest }
@@ -520,13 +520,13 @@ decodeBool =
 expect
     bytes = ['B', 'o', 'o', 'l', '.', 't', 'r', 'u', 'e', 'X']
     expected = { result: Ok Bool.true, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
 expect
     bytes = ['B', 'o', 'o', 'l', '.', 'f', 'a', 'l', 's', 'e', 'X']
     expected = { result: Ok Bool.false, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
 expect
@@ -534,11 +534,11 @@ expect
     bytes = ['X']
     expected : DecodeResult Bool
     expected = { result: Err TooShort, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
-decodeString : Decoder Str Rocon
-decodeString = Decode.custom \bytes, @Rocon {} ->
+decodeString : Decoder Str Rvn
+decodeString = Decode.custom \bytes, @Rvn {} ->
     step = \acc, remaining ->
         when remaining is
             ['\\', 'n', .. as rest] -> step (List.concat acc ['\n']) rest
@@ -575,21 +575,21 @@ expect
     bytes = ['X']
     expected : DecodeResult Str
     expected = { result: Err TooShort, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
 expect
     # Parses a simple string
     bytes = ['"', 'H', 'i', '"', 'X']
     expected = { result: Ok "Hi", rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
 expect
     # Parser string with special characters
     bytes = ['"', '\\', 'n', '\\', 't', '\\', '"', '\\', '\\', '\\', '$', '"']
     expected = { result: Ok "\n\t\"\\\$", rest: [] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
 expect
@@ -597,7 +597,7 @@ expect
     bytes = ['"', '\\', 'X', '"']
     expected : DecodeResult U8
     expected = { result: Err TooShort, rest: ['"', '\\', 'X', '"'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
 expect
@@ -605,10 +605,10 @@ expect
     bytes = ['"', 'H', 'i']
     expected : DecodeResult U8
     expected = { result: Err TooShort, rest: ['"', 'H', 'i'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
-decodeList : Decoder elem Rocon -> Decoder (List elem) Rocon
+decodeList : Decoder elem Rvn -> Decoder (List elem) Rvn
 decodeList = \elemDecoder ->
     Decode.custom \bytes, fmt ->
         dropComma =
@@ -638,7 +638,7 @@ expect
     bytes = ['[', ']', 'X']
     expected : DecodeResult (List U8)
     expected = { result: Ok [], rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
 expect
@@ -646,7 +646,7 @@ expect
     bytes = ['[', '0', ',', '1', ']', 'X']
     expected : DecodeResult (List U8)
     expected = { result: Ok [0, 1], rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
 expect
@@ -654,7 +654,7 @@ expect
     bytes = ['[', '0', ',', '1', ',', ']', 'X']
     expected : DecodeResult (List U8)
     expected = { result: Ok [0, 1], rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
 expect
@@ -662,10 +662,10 @@ expect
     bytes = ['[', '0']
     expected : DecodeResult (List U8)
     expected = { result: Err TooShort, rest: [] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
-skipDecoder : Decoder {} Rocon
+skipDecoder : Decoder {} Rvn
 skipDecoder =
     Decode.custom \bytes, fmt ->
         mapToUnit = \{ result, rest } -> {
@@ -728,7 +728,7 @@ expect
     bytes = ['0', 'b', '0', '1', 'X']
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipDecoder rocon
+    actual = Decode.decodeWith bytes skipDecoder rvn
     expected == actual
 
 expect
@@ -736,7 +736,7 @@ expect
     bytes = ['0', 'x', 'f', '1', 'X']
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipDecoder rocon
+    actual = Decode.decodeWith bytes skipDecoder rvn
     expected == actual
 
 expect
@@ -744,7 +744,7 @@ expect
     bytes = ['1', '_', '2', 'X']
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipDecoder rocon
+    actual = Decode.decodeWith bytes skipDecoder rvn
     expected == actual
 
 expect
@@ -752,7 +752,7 @@ expect
     bytes = ['-', '0', '.', '1', 'X']
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipDecoder rocon
+    actual = Decode.decodeWith bytes skipDecoder rvn
     expected == actual
 
 expect
@@ -760,7 +760,7 @@ expect
     bytes = ['B', 'o', 'o', 'l', '.', 't', 'r', 'u', 'e', 'X']
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipDecoder rocon
+    actual = Decode.decodeWith bytes skipDecoder rvn
     expected == actual
 
 expect
@@ -768,7 +768,7 @@ expect
     bytes = ['B', 'o', 'o', 'l', '.', 'f', 'a', 'l', 's', 'e', 'X']
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipDecoder rocon
+    actual = Decode.decodeWith bytes skipDecoder rvn
     expected == actual
 
 expect
@@ -776,7 +776,7 @@ expect
     bytes = ['[', '-', '0', '.', '1', ']', 'X']
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipDecoder rocon
+    actual = Decode.decodeWith bytes skipDecoder rvn
     expected == actual
 
 expect
@@ -784,7 +784,7 @@ expect
     bytes = ['{', 'a', ':', '1', '}', 'X']
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipDecoder rocon
+    actual = Decode.decodeWith bytes skipDecoder rvn
     expected == actual
 
 expect
@@ -792,14 +792,14 @@ expect
     bytes = ['(', '0', ',', '1', ')', 'X']
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipDecoder rocon
+    actual = Decode.decodeWith bytes skipDecoder rvn
     expected == actual
 
 # I'd like to use skipDecoder for the record-skipping logic as well, but run
 # into some errors that I think are compiler bugs, related to the `state`
 # parameter. So for now I have this separate implementation for skipping
 # records.
-skipRecord : Decoder {} Rocon
+skipRecord : Decoder {} Rvn
 skipRecord =
     Decode.custom \bytes, fmt ->
         decodeKey = \remaining ->
@@ -837,9 +837,9 @@ skipRecord =
 
 decodeRecord :
     state,
-    (state, Str -> [Keep (Decoder state Rocon), Skip]),
+    (state, Str -> [Keep (Decoder state Rvn), Skip]),
     (state -> Result val DecodeError)
-    -> Decoder val Rocon
+    -> Decoder val Rvn
 decodeRecord = \initialState, stepField, finalizer ->
     Decode.custom \bytes, fmt ->
         decodeKey = \remaining ->
@@ -889,63 +889,63 @@ expect
     # Decodes an empty record
     bytes = ['{', '}', 'X']
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
 expect
     # Skips an empty record
     bytes = ['{', '}', 'X']
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipRecord rocon
+    actual = Decode.decodeWith bytes skipRecord rvn
     expected == actual
 
 expect
     # Decodes a record with some fields
     bytes = ['{', 'a', ':', '1', ',', 'b', ':', '2', '}', 'X']
     expected = { result: Ok { a: 1, b: 2 }, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
 expect
     # Skips a record with some fields
     bytes = ['{', 'a', ':', '1', ',', 'b', ':', '2', '}', 'X']
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipRecord rocon
+    actual = Decode.decodeWith bytes skipRecord rvn
     expected == actual
 
 expect
     # Decodes a record with a trailing comma on the last field
     bytes = ['{', 'a', ':', '1', ',', '}', 'X']
     expected = { result: Ok { a: 1 }, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
 expect
     # Decodes a record with a trailing comma on the last field
     bytes = ['{', 'a', ':', '1', ',', '}', 'X']
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipRecord rocon
+    actual = Decode.decodeWith bytes skipRecord rvn
     expected == actual
 
 expect
     # Skips fields not present in the expected type
     bytes = ['{', 'a', ':', '1', '}', 'X']
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
 expect
     # Skips records with fields not present in the expected type
     bytes = ['{', 'a', ':', '1', '}', 'X']
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipRecord rocon
+    actual = Decode.decodeWith bytes skipRecord rvn
     expected == actual
 
 decodeTuple :
     state,
-    (state, U64 -> [Next (Decoder state Rocon), TooLong]),
+    (state, U64 -> [Next (Decoder state Rvn), TooLong]),
     (state -> Result val DecodeError)
-    -> Decoder val Rocon
+    -> Decoder val Rvn
 decodeTuple = \initialState, stepField, finalizer ->
     Decode.custom \bytes, fmt ->
         decodeSingleField : U64, state, List U8 -> DecodeResult state
@@ -974,21 +974,21 @@ expect
     # Decodes 2-tuple
     bytes = ['(', '1', ',', '2', ')', 'X']
     expected = { result: Ok (1, 2), rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
 expect
     # Decodes 3-tuple
     bytes = ['(', '1', ',', '2', ',', '3', ')', 'X']
     expected = { result: Ok (1, 2, 3), rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
 expect
     # Decodes tuple with trailing comma
     bytes = ['(', '1', ',', '2', ',', ')', 'X']
     expected = { result: Ok (1, 2), rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
 expect
@@ -996,7 +996,7 @@ expect
     bytes = ['(', '1', ')', 'X']
     expected : DecodeResult (U8, U8)
     expected = { result: Err TooShort, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
 expect
@@ -1004,5 +1004,5 @@ expect
     bytes = ['(', '1', ',', '2', ',', '3', ')', 'X']
     expected : DecodeResult (U8, U8)
     expected = { result: Err TooShort, rest: ['3', ')', 'X'] }
-    actual = Decode.fromBytesPartial bytes rocon
+    actual = Decode.fromBytesPartial bytes rvn
     expected == actual
