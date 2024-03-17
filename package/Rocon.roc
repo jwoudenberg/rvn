@@ -702,21 +702,26 @@ skipDecoder =
                 Decode.decodeWith bytes (decodeList skipDecoder) fmt
                 |> mapToUnit
 
-            ['(', ..] -> crash "UNIMPLEMENTED"
+            ['(', ..] ->
+                Decode.decodeWith
+                    bytes
+                    (decodeTuple {} (\_, _ -> Next skipDecoder) (\_ -> Ok {}))
+                    fmt
+
             ['{', ..] ->
                 Decode.decodeWith bytes skipRecord fmt
 
             rest -> decodingCrash { rest, msg: "failed decoding while skipping a record field" }
 
-decodingCrash : { rest: List U8, msg : Str } -> *
+decodingCrash : { rest : List U8, msg : Str } -> *
 decodingCrash = \{ rest, msg } ->
-  when Str.fromUtf8 rest is
-    Err _ -> crash msg
-    Ok str ->
-      words = Str.split str " "
-      excerpt = List.takeFirst words 3 |> Str.joinWith ","
+    when Str.fromUtf8 rest is
+        Err _ -> crash msg
+        Ok str ->
+            words = Str.split str " "
+            excerpt = List.takeFirst words 3 |> Str.joinWith ","
 
-      crash "\(msg): \(excerpt)..."
+            crash "$(msg): $(excerpt)..."
 
 expect
     # Skips binary numbers
@@ -777,6 +782,14 @@ expect
 expect
     # Skips records
     bytes = ['{', 'a', ':', '1', '}', 'X']
+    expected : DecodeResult {}
+    expected = { result: Ok {}, rest: ['X'] }
+    actual = Decode.decodeWith bytes skipDecoder rocon
+    expected == actual
+
+expect
+    # Skips tuples
+    bytes = ['(', '0', ',', '1', ')', 'X']
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
     actual = Decode.decodeWith bytes skipDecoder rocon
@@ -928,4 +941,68 @@ expect
     actual = Decode.decodeWith bytes skipRecord rocon
     expected == actual
 
-decodeTuple : state, (state, U64 -> [Next (Decoder state Rocon), TooLong]), (state -> Result val DecodeError) -> Decoder val Rocon
+decodeTuple :
+    state,
+    (state, U64 -> [Next (Decoder state Rocon), TooLong]),
+    (state -> Result val DecodeError)
+    -> Decoder val Rocon
+decodeTuple = \initialState, stepField, finalizer ->
+    Decode.custom \bytes, fmt ->
+        decodeSingleField : U64, state, List U8 -> DecodeResult state
+        decodeSingleField = \index, state, remaining ->
+            when stepField state index is
+                Next decoder -> Decode.decodeWith remaining decoder fmt
+                TooLong -> { result: Err TooShort, rest: remaining }
+
+        decodeFields = \index, state, remaining ->
+            fieldResult = decodeSingleField index state remaining
+            when fieldResult.result is
+                Ok newState ->
+                    when fieldResult.rest is
+                        [')', .. as rest] -> { result: finalizer newState, rest }
+                        [',', ')', .. as rest] -> { result: finalizer newState, rest }
+                        [',', .. as rest] -> decodeFields (index + 1) newState rest
+                        rest -> { result: Err TooShort, rest }
+
+                Err err -> { result: Err err, rest: fieldResult.rest }
+
+        when bytes is
+            ['(', .. as remaining] -> decodeFields 0 initialState remaining
+            rest -> { result: Err TooShort, rest }
+
+expect
+    # Decodes 2-tuple
+    bytes = ['(', '1', ',', '2', ')', 'X']
+    expected = { result: Ok (1, 2), rest: ['X'] }
+    actual = Decode.fromBytesPartial bytes rocon
+    expected == actual
+
+expect
+    # Decodes 3-tuple
+    bytes = ['(', '1', ',', '2', ',', '3', ')', 'X']
+    expected = { result: Ok (1, 2, 3), rest: ['X'] }
+    actual = Decode.fromBytesPartial bytes rocon
+    expected == actual
+
+expect
+    # Decodes tuple with trailing comma
+    bytes = ['(', '1', ',', '2', ',', ')', 'X']
+    expected = { result: Ok (1, 2), rest: ['X'] }
+    actual = Decode.fromBytesPartial bytes rocon
+    expected == actual
+
+expect
+    # Fails decoding tuple if not enough elements provided
+    bytes = ['(', '1', ')', 'X']
+    expected : DecodeResult (U8, U8)
+    expected = { result: Err TooShort, rest: ['X'] }
+    actual = Decode.fromBytesPartial bytes rocon
+    expected == actual
+
+expect
+    # Fails decoding tuple if too many elments provided
+    bytes = ['(', '1', ',', '2', ',', '3', ')', 'X']
+    expected : DecodeResult (U8, U8)
+    expected = { result: Err TooShort, rest: ['3', ')', 'X'] }
+    actual = Decode.fromBytesPartial bytes rocon
+    expected == actual
