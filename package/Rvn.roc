@@ -341,35 +341,35 @@ decodeU8 = toDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toU8
 
 expect
     # Parse decimal numbers
-    bytes = ['2', '3', 'X']
+    bytes = Str.toUtf8 "23X"
     expected = { result: Ok (Num.toU8 23), rest: ['X'] }
     actual = Decode.fromBytesPartial bytes rvn
     actual == expected
 
 expect
     # Parse binary numbers
-    bytes = ['0', 'b', '1', '0', '1', 'X']
+    bytes = Str.toUtf8 "0b101X"
     expected = { result: Ok (Num.toU8 5), rest: ['X'] }
     actual = Decode.fromBytesPartial bytes rvn
     actual == expected
 
 expect
     # Parse hex numbers
-    bytes = ['0', 'x', '1', 'a', 'X']
+    bytes = Str.toUtf8 "0x1aX"
     expected = { result: Ok (Num.toU8 26), rest: ['X'] }
     actual = Decode.fromBytesPartial bytes rvn
     actual == expected
 
 expect
     # Ignore surrounding whitespace
-    bytes = [' ', '2', ' ', 'X']
+    bytes = Str.toUtf8 " 2 X"
     expected = { result: Ok (Num.toU8 2), rest: ['X'] }
     actual = Decode.fromBytesPartial bytes rvn
     actual == expected
 
 expect
     # Fail attempt to decode too large a number into a U8
-    bytes = ['9', '9', '9']
+    bytes = Str.toUtf8 "999"
     expected : DecodeResult U8
     expected = { result: Err TooShort, rest: [] }
     actual = Decode.fromBytesPartial bytes rvn
@@ -400,35 +400,35 @@ decodeI8 = toDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toI8
 
 expect
     # Parse positive numbers
-    bytes = ['2', '3', 'X']
+    bytes = Str.toUtf8 "23X"
     expected = { result: Ok (Num.toI8 23), rest: ['X'] }
     actual = Decode.fromBytesPartial bytes rvn
     actual == expected
 
 expect
     # Parse negative numbers
-    bytes = ['-', '0', 'b', '1', '0', '1', 'X']
+    bytes = Str.toUtf8 "-0b101X"
     expected = { result: Ok (Num.toI8 -5), rest: ['X'] }
     actual = Decode.fromBytesPartial bytes rvn
     actual == expected
 
 expect
     # Parse negative binary numbers
-    bytes = ['-', '2', '3', 'X']
+    bytes = Str.toUtf8 "-23X"
     expected = { result: Ok (Num.toI8 -23), rest: ['X'] }
     actual = Decode.fromBytesPartial bytes rvn
     actual == expected
 
 expect
     # Parse negative hex numbers
-    bytes = ['-', '0', 'x', '1', 'a', 'X']
+    bytes = Str.toUtf8 "-0x1aX"
     expected = { result: Ok (Num.toI8 -26), rest: ['X'] }
     actual = Decode.fromBytesPartial bytes rvn
     actual == expected
 
 expect
     # Ignore surrounding whitespace
-    bytes = [' ', '2', ' ', 'X']
+    bytes = Str.toUtf8 " 2 X"
     expected = { result: Ok (Num.toI8 2), rest: ['X'] }
     actual = Decode.fromBytesPartial bytes rvn
     actual == expected
@@ -485,7 +485,7 @@ decodeDec = toDecoder \bytes, @Rvn {}, _ -> decodeFloat bytes Str.toDec
 
 expect
     # Parse positive numbers
-    bytes = ['2', '3', 'X']
+    bytes = Str.toUtf8 "23X"
     n : Dec
     n = 23
     expected = { result: Ok n, rest: ['X'] }
@@ -494,7 +494,7 @@ expect
 
 expect
     # Parse negative numbers
-    bytes = ['-', '2', '3', 'X']
+    bytes = Str.toUtf8 "-23X"
     n : Dec
     n = -23
     expected = { result: Ok n, rest: ['X'] }
@@ -503,7 +503,7 @@ expect
 
 expect
     # Parse fractional numbers
-    bytes = ['1', '2', '.', '3', '4', 'X']
+    bytes = Str.toUtf8 "12.34X"
     n : Dec
     n = 12.34
     expected = { result: Ok n, rest: ['X'] }
@@ -512,7 +512,7 @@ expect
 
 expect
     # Ignore surrounding whitespace
-    bytes = [' ', '2', ' ', 'X']
+    bytes = Str.toUtf8 " 2 X"
     n : Dec
     n = 2
     expected = { result: Ok n, rest: ['X'] }
@@ -541,20 +541,20 @@ decodeBool =
                 { result: Err TooShort, rest }
 
 expect
-    bytes = ['B', 'o', 'o', 'l', '.', 't', 'r', 'u', 'e', 'X']
+    bytes = Str.toUtf8 "Bool.trueX"
     expected = { result: Ok Bool.true, rest: ['X'] }
     actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
 expect
-    bytes = ['B', 'o', 'o', 'l', '.', 'f', 'a', 'l', 's', 'e', 'X']
+    bytes = Str.toUtf8 "Bool.falseX"
     expected = { result: Ok Bool.false, rest: ['X'] }
     actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
 expect
     # Ignore surrounding whitespace
-    bytes = [' ', 'B', 'o', 'o', 'l', '.', 'f', 'a', 'l', 's', 'e', ' ', 'X']
+    bytes = Str.toUtf8 " Bool.false X"
     expected = { result: Ok Bool.false, rest: ['X'] }
     actual = Decode.fromBytesPartial bytes rvn
     expected == actual
@@ -680,7 +680,7 @@ expect
 
 expect
     # Decode a list of elements
-    bytes = ['[', '0', ',', '1', ']', 'X']
+    bytes = Str.toUtf8 "[0,1]X"
     expected : DecodeResult (List U8)
     expected = { result: Ok [0, 1], rest: ['X'] }
     actual = Decode.fromBytesPartial bytes rvn
@@ -696,7 +696,7 @@ expect
 
 expect
     # Decode a list of elements with a trailing comma
-    bytes = ['[', '0', ',', '1', ',', ']', 'X']
+    bytes = Str.toUtf8 "[0,1,]X"
     expected : DecodeResult (List U8)
     expected = { result: Ok [0, 1], rest: ['X'] }
     actual = Decode.fromBytesPartial bytes rvn
@@ -704,7 +704,7 @@ expect
 
 expect
     # Fails if ending brace is missing
-    bytes = ['[', '0']
+    bytes = Str.toUtf8 "[0"
     expected : DecodeResult (List U8)
     expected = { result: Err TooShort, rest: [] }
     actual = Decode.fromBytesPartial bytes rvn
@@ -770,7 +770,7 @@ decodingCrash = \{ rest, msg } ->
 
 expect
     # Skips binary numbers
-    bytes = ['0', 'b', '0', '1', 'X']
+    bytes = Str.toUtf8 "0b01X"
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
     actual = Decode.decodeWith bytes skipDecoder rvn
@@ -778,7 +778,7 @@ expect
 
 expect
     # Skips hex numbers
-    bytes = ['0', 'x', 'f', '1', 'X']
+    bytes = Str.toUtf8 "0xf1X"
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
     actual = Decode.decodeWith bytes skipDecoder rvn
@@ -786,7 +786,7 @@ expect
 
 expect
     # Skips integers
-    bytes = ['1', '_', '2', 'X']
+    bytes = Str.toUtf8 "1_2X"
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
     actual = Decode.decodeWith bytes skipDecoder rvn
@@ -794,7 +794,7 @@ expect
 
 expect
     # Skips floats
-    bytes = ['-', '0', '.', '1', 'X']
+    bytes = Str.toUtf8 "-0.1X"
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
     actual = Decode.decodeWith bytes skipDecoder rvn
@@ -802,7 +802,7 @@ expect
 
 expect
     # Skips Bool.true
-    bytes = ['B', 'o', 'o', 'l', '.', 't', 'r', 'u', 'e', 'X']
+    bytes = Str.toUtf8 "Bool.trueX"
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
     actual = Decode.decodeWith bytes skipDecoder rvn
@@ -810,7 +810,7 @@ expect
 
 expect
     # Skips Bool.false
-    bytes = ['B', 'o', 'o', 'l', '.', 'f', 'a', 'l', 's', 'e', 'X']
+    bytes = Str.toUtf8 "Bool.falseX"
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
     actual = Decode.decodeWith bytes skipDecoder rvn
@@ -818,7 +818,7 @@ expect
 
 expect
     # Skips lists
-    bytes = ['[', '-', '0', '.', '1', ']', 'X']
+    bytes = Str.toUtf8 "[-0.1]X"
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
     actual = Decode.decodeWith bytes skipDecoder rvn
@@ -826,7 +826,7 @@ expect
 
 expect
     # Skips records
-    bytes = ['{', 'a', ':', '1', '}', 'X']
+    bytes = Str.toUtf8 "{a:1}X"
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
     actual = Decode.decodeWith bytes skipDecoder rvn
@@ -834,7 +834,7 @@ expect
 
 expect
     # Skips tuples
-    bytes = ['(', '0', ',', '1', ')', 'X']
+    bytes = Str.toUtf8 "(0,1)X"
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
     actual = Decode.decodeWith bytes skipDecoder rvn
@@ -932,28 +932,28 @@ decodeRecord = \initialState, stepField, finalizer ->
 
 expect
     # Decodes an empty record
-    bytes = ['{', '}', 'X']
+    bytes = Str.toUtf8 "{}X"
     expected = { result: Ok {}, rest: ['X'] }
     actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
 expect
     # Skips an empty record
-    bytes = ['{', '}', 'X']
+    bytes = Str.toUtf8 "{}X"
     expected = { result: Ok {}, rest: ['X'] }
     actual = Decode.decodeWith bytes skipRecord rvn
     expected == actual
 
 expect
     # Decodes a record with some fields
-    bytes = ['{', 'a', ':', '1', ',', 'b', ':', '2', '}', 'X']
+    bytes = Str.toUtf8 "{a:1,b:2}X"
     expected = { result: Ok { a: 1, b: 2 }, rest: ['X'] }
     actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
 expect
     # Skips a record with some fields
-    bytes = ['{', 'a', ':', '1', ',', 'b', ':', '2', '}', 'X']
+    bytes = Str.toUtf8 "{a:1,b:2}X"
     expected = { result: Ok {}, rest: ['X'] }
     actual = Decode.decodeWith bytes skipRecord rvn
     expected == actual
@@ -974,28 +974,28 @@ expect
 
 expect
     # Decodes a record with a trailing comma on the last field
-    bytes = ['{', 'a', ':', '1', ',', '}', 'X']
+    bytes = Str.toUtf8 "{a:1,}X"
     expected = { result: Ok { a: 1 }, rest: ['X'] }
     actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
 expect
     # Decodes a record with a trailing comma on the last field
-    bytes = ['{', 'a', ':', '1', ',', '}', 'X']
+    bytes = Str.toUtf8 "{a:1,}X"
     expected = { result: Ok {}, rest: ['X'] }
     actual = Decode.decodeWith bytes skipRecord rvn
     expected == actual
 
 expect
     # Skips fields not present in the expected type
-    bytes = ['{', 'a', ':', '1', '}', 'X']
+    bytes = Str.toUtf8 "{a:1}X"
     expected = { result: Ok {}, rest: ['X'] }
     actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
 expect
     # Skips records with fields not present in the expected type
-    bytes = ['{', 'a', ':', '1', '}', 'X']
+    bytes = Str.toUtf8 "{a:1}X"
     expected = { result: Ok {}, rest: ['X'] }
     actual = Decode.decodeWith bytes skipRecord rvn
     expected == actual
@@ -1031,21 +1031,21 @@ decodeTuple = \initialState, stepField, finalizer ->
 
 expect
     # Decodes 2-tuple
-    bytes = ['(', '1', ',', '2', ')', 'X']
+    bytes = Str.toUtf8 "(1,2)X"
     expected = { result: Ok (1, 2), rest: ['X'] }
     actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
 expect
     # Decodes 3-tuple
-    bytes = ['(', '1', ',', '2', ',', '3', ')', 'X']
+    bytes = Str.toUtf8 "(1,2,3)X"
     expected = { result: Ok (1, 2, 3), rest: ['X'] }
     actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
 expect
     # Decodes tuple with trailing comma
-    bytes = ['(', '1', ',', '2', ',', ')', 'X']
+    bytes = Str.toUtf8 "(1,2,)X"
     expected = { result: Ok (1, 2), rest: ['X'] }
     actual = Decode.fromBytesPartial bytes rvn
     expected == actual
@@ -1059,7 +1059,7 @@ expect
 
 expect
     # Fails decoding tuple if not enough elements provided
-    bytes = ['(', '1', ')', 'X']
+    bytes = Str.toUtf8 "(1)X"
     expected : DecodeResult (U8, U8)
     expected = { result: Err TooShort, rest: ['X'] }
     actual = Decode.fromBytesPartial bytes rvn
@@ -1067,7 +1067,7 @@ expect
 
 expect
     # Fails decoding tuple if too many elments provided
-    bytes = ['(', '1', ',', '2', ',', '3', ')', 'X']
+    bytes = Str.toUtf8 "(1,2,3)X"
     expected : DecodeResult (U8, U8)
     expected = { result: Err TooShort, rest: ['3', ')', 'X'] }
     actual = Decode.fromBytesPartial bytes rvn
@@ -1096,28 +1096,28 @@ skipWhitespace = \bytes ->
 
 expect
     # skips spaces
-    bytes = [' ', ' ', 'X']
+    bytes = Str.toUtf8 "  X"
     expected = { indent: 2, rest: ['X'] }
     actual = skipWhitespace bytes
     expected == actual
 
 expect
     # skips tabs
-    bytes = ['\t', '\t', 'X']
+    bytes = Str.toUtf8 "\t\tX"
     expected = { indent: 4, rest: ['X'] }
     actual = skipWhitespace bytes
     expected == actual
 
 expect
     # skips newlinwes, which reset the indent count
-    bytes = [' ', '\n', ' ', ' ', 'X']
+    bytes = Str.toUtf8 " \n  X"
     expected = { indent: 2, rest: ['X'] }
     actual = skipWhitespace bytes
     expected == actual
 
 expect
     # skips comments up to the end of the line
-    bytes = [' ', '#', 'c', '\n', ' ', 'X']
+    bytes = Str.toUtf8 " #c\n X"
     expected = { indent: 1, rest: ['X'] }
     actual = skipWhitespace bytes
     expected == actual
