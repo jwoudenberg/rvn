@@ -678,6 +678,14 @@ skipDecoder =
                 Decode.decodeWith bytes decodeString fmt
                 |> mapToUnit
 
+            ['0', 'b', ..] ->
+                Decode.decodeWith bytes decodeU64 fmt
+                |> mapToUnit
+
+            ['0', 'x', ..] ->
+                Decode.decodeWith bytes decodeU64 fmt
+                |> mapToUnit
+
             ['-', ..] ->
                 Decode.decodeWith bytes decodeF64 fmt
                 |> mapToUnit
@@ -711,8 +719,48 @@ decodingCrash = \{ rest, msg } ->
       crash "\(msg): \(excerpt)..."
 
 expect
+    # Skips binary numbers
+    bytes = ['0', 'b', '0', '1', 'X']
+    expected : DecodeResult {}
+    expected = { result: Ok {}, rest: ['X'] }
+    actual = Decode.decodeWith bytes skipDecoder rocon
+    expected == actual
+
+expect
+    # Skips hex numbers
+    bytes = ['0', 'x', 'f', '1', 'X']
+    expected : DecodeResult {}
+    expected = { result: Ok {}, rest: ['X'] }
+    actual = Decode.decodeWith bytes skipDecoder rocon
+    expected == actual
+
+expect
+    # Skips integers
+    bytes = ['1', '_', '2', 'X']
+    expected : DecodeResult {}
+    expected = { result: Ok {}, rest: ['X'] }
+    actual = Decode.decodeWith bytes skipDecoder rocon
+    expected == actual
+
+expect
     # Skips floats
     bytes = ['-', '0', '.', '1', 'X']
+    expected : DecodeResult {}
+    expected = { result: Ok {}, rest: ['X'] }
+    actual = Decode.decodeWith bytes skipDecoder rocon
+    expected == actual
+
+expect
+    # Skips Bool.true
+    bytes = ['B', 'o', 'o', 'l', '.', 't', 'r', 'u', 'e', 'X']
+    expected : DecodeResult {}
+    expected = { result: Ok {}, rest: ['X'] }
+    actual = Decode.decodeWith bytes skipDecoder rocon
+    expected == actual
+
+expect
+    # Skips Bool.false
+    bytes = ['B', 'o', 'o', 'l', '.', 'f', 'a', 'l', 's', 'e', 'X']
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
     actual = Decode.decodeWith bytes skipDecoder rocon
