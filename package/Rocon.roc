@@ -695,23 +695,20 @@ skipDecoder =
                 |> mapToUnit
 
             ['(', ..] -> crash "UNIMPLEMENTED"
-            ['{', ..] -> crash "UNIMPLEMENTED"
-            # # I feel the following code should work, but if I uncomment
-            # # it, I get compilation errors all across this file. Bug
-            # # in the compiler?
-            #
-            # finalizer : {} -> Result {} DecodeError
-            # finalizer = \x -> Ok x
-            #
-            # stepField : {}, Str -> [Keep (Decoder {} Rocon), Skip]
-            # stepField = \_, _ -> Skip
-            #
-            # Decode.decodeWith
-            #     bytes
-            #     (decodeRecord {} stepField finalizer)
-            #     fmt
-            # |> mapToUnit
-            _ -> crash "decoding tags is currently not supported"
+            ['{', ..] ->
+                Decode.decodeWith bytes skipRecord fmt
+
+            rest -> decodingCrash { rest, msg: "failed decoding while skipping a record field" }
+
+decodingCrash : { rest: List U8, msg : Str } -> *
+decodingCrash = \{ rest, msg } ->
+  when Str.fromUtf8 rest is
+    Err _ -> crash msg
+    Ok str ->
+      words = Str.split str " "
+      excerpt = List.takeFirst words 3 |> Str.joinWith ","
+
+      crash "\(msg): \(excerpt)..."
 
 expect
     # Skips floats
@@ -728,6 +725,54 @@ expect
     expected = { result: Ok {}, rest: ['X'] }
     actual = Decode.decodeWith bytes skipDecoder rocon
     expected == actual
+
+expect
+    # Skips records
+    bytes = ['{', 'a', ':', '1', '}', 'X']
+    expected : DecodeResult {}
+    expected = { result: Ok {}, rest: ['X'] }
+    actual = Decode.decodeWith bytes skipDecoder rocon
+    expected == actual
+
+# I'd like to use skipDecoder for the record-skipping logic as well, but run
+# into some errors that I think are compiler bugs, related to the `state`
+# parameter. So for now I have this separate implementation for skipping
+# records.
+skipRecord : Decoder {} Rocon
+skipRecord =
+    Decode.custom \bytes, fmt ->
+        decodeKey = \remaining ->
+            when List.splitFirst remaining ':' is
+                Ok { before, after } -> { result: Str.fromUtf8 before, rest: after }
+                Err _ -> { result: Err TooShort, rest: remaining }
+
+        decodeSingleField : List U8 -> DecodeResult {}
+        decodeSingleField = \remaining ->
+            keyResult = decodeKey remaining
+            when keyResult.result is
+                Err _ -> { result: Err TooShort, rest: remaining }
+                Ok _ -> Decode.decodeWith keyResult.rest skipDecoder fmt
+
+        decodeFields = \remaining ->
+            fieldResult = decodeSingleField remaining
+            when fieldResult.result is
+                Ok {} ->
+                    when fieldResult.rest is
+                        ['}', .. as rest] -> { result: Ok {}, rest }
+                        [',', '}', .. as rest] -> { result: Ok {}, rest }
+                        [',', .. as rest] -> decodeFields rest
+                        rest -> { result: Err TooShort, rest }
+
+                Err err -> { result: Err err, rest: fieldResult.rest }
+
+        when bytes is
+            ['{', .. as remaining] ->
+                when remaining is
+                    ['}', .. as rest] -> { result: Ok {}, rest }
+                    [',', '}', .. as rest] -> { result: Ok {}, rest }
+                    _ -> decodeFields remaining
+
+            rest -> { result: Err TooShort, rest }
 
 decodeRecord :
     state,
@@ -787,10 +832,24 @@ expect
     expected == actual
 
 expect
+    # Skips an empty record
+    bytes = ['{', '}', 'X']
+    expected = { result: Ok {}, rest: ['X'] }
+    actual = Decode.decodeWith bytes skipRecord rocon
+    expected == actual
+
+expect
     # Decodes a record with some fields
     bytes = ['{', 'a', ':', '1', ',', 'b', ':', '2', '}', 'X']
     expected = { result: Ok { a: 1, b: 2 }, rest: ['X'] }
     actual = Decode.fromBytesPartial bytes rocon
+    expected == actual
+
+expect
+    # Skips a record with some fields
+    bytes = ['{', 'a', ':', '1', ',', 'b', ':', '2', '}', 'X']
+    expected = { result: Ok {}, rest: ['X'] }
+    actual = Decode.decodeWith bytes skipRecord rocon
     expected == actual
 
 expect
@@ -801,10 +860,24 @@ expect
     expected == actual
 
 expect
+    # Decodes a record with a trailing comma on the last field
+    bytes = ['{', 'a', ':', '1', ',', '}', 'X']
+    expected = { result: Ok {}, rest: ['X'] }
+    actual = Decode.decodeWith bytes skipRecord rocon
+    expected == actual
+
+expect
     # Skips fields not present in the expected type
     bytes = ['{', 'a', ':', '1', '}', 'X']
     expected = { result: Ok {}, rest: ['X'] }
     actual = Decode.fromBytesPartial bytes rocon
+    expected == actual
+
+expect
+    # Skips records with fields not present in the expected type
+    bytes = ['{', 'a', ':', '1', '}', 'X']
+    expected = { result: Ok {}, rest: ['X'] }
+    actual = Decode.decodeWith bytes skipRecord rocon
     expected == actual
 
 decodeTuple : state, (state, U64 -> [Next (Decoder state Rocon), TooLong]), (state -> Result val DecodeError) -> Decoder val Rocon
