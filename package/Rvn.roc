@@ -8,6 +8,7 @@ interface Rvn
             Encoder,
             EncoderFormatting,
         },
+        Parser.{ Parser },
     ]
 
 Rvn := {}
@@ -337,7 +338,7 @@ isHexDigit = \byte ->
     || (byte >= 'A' && byte <= 'F')
 
 decodeU8 : Decoder U8 Rvn
-decodeU8 = toDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toU8
+decodeU8 = trimDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toU8
 
 expect
     # Parse decimal numbers
@@ -384,19 +385,19 @@ expect
     actual == expected
 
 decodeU16 : Decoder U16 Rvn
-decodeU16 = toDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toU16
+decodeU16 = trimDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toU16
 
 decodeU32 : Decoder U32 Rvn
-decodeU32 = toDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toU32
+decodeU32 = trimDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toU32
 
 decodeU64 : Decoder U64 Rvn
-decodeU64 = toDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toU64
+decodeU64 = trimDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toU64
 
 decodeU128 : Decoder U128 Rvn
-decodeU128 = toDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toU128
+decodeU128 = trimDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toU128
 
 decodeI8 : Decoder I8 Rvn
-decodeI8 = toDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toI8
+decodeI8 = trimDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toI8
 
 expect
     # Parse positive numbers
@@ -434,16 +435,16 @@ expect
     actual == expected
 
 decodeI16 : Decoder I16 Rvn
-decodeI16 = toDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toI16
+decodeI16 = trimDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toI16
 
 decodeI32 : Decoder I32 Rvn
-decodeI32 = toDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toI32
+decodeI32 = trimDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toI32
 
 decodeI64 : Decoder I64 Rvn
-decodeI64 = toDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toI64
+decodeI64 = trimDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toI64
 
 decodeI128 : Decoder I128 Rvn
-decodeI128 = toDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toI128
+decodeI128 = trimDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toI128
 
 decodeFloat = \bytes, fromStr ->
     countMinusSign =
@@ -475,13 +476,13 @@ decodeFloat = \bytes, fromStr ->
     decodeUtf8Bytes bytes fromStr len
 
 decodeF32 : Decoder F32 Rvn
-decodeF32 = toDecoder \bytes, @Rvn {}, _ -> decodeFloat bytes Str.toF32
+decodeF32 = trimDecoder \bytes, @Rvn {}, _ -> decodeFloat bytes Str.toF32
 
 decodeF64 : Decoder F64 Rvn
-decodeF64 = toDecoder \bytes, @Rvn {}, _ -> decodeFloat bytes Str.toF64
+decodeF64 = trimDecoder \bytes, @Rvn {}, _ -> decodeFloat bytes Str.toF64
 
 decodeDec : Decoder Dec Rvn
-decodeDec = toDecoder \bytes, @Rvn {}, _ -> decodeFloat bytes Str.toDec
+decodeDec = trimDecoder \bytes, @Rvn {}, _ -> decodeFloat bytes Str.toDec
 
 expect
     # Parse positive numbers
@@ -529,7 +530,7 @@ expect
 
 decodeBool : Decoder Bool Rvn
 decodeBool =
-    toDecoder \bytes, @Rvn {}, _ ->
+    trimDecoder \bytes, @Rvn {}, _ ->
         when bytes is
             ['B', 'o', 'o', 'l', '.', 't', 'r', 'u', 'e', .. as rest] ->
                 { result: Ok Bool.true, rest }
@@ -568,7 +569,7 @@ expect
     expected == actual
 
 decodeString : Decoder Str Rvn
-decodeString = toDecoder \bytes, @Rvn {}, _ ->
+decodeString = trimDecoder \bytes, @Rvn {}, _ ->
     step = \acc, remaining ->
         when remaining is
             ['\\', 'n', .. as rest] -> step (List.concat acc ['\n']) rest
@@ -647,7 +648,7 @@ expect
 
 decodeList : Decoder elem Rvn -> Decoder (List elem) Rvn
 decodeList = \elemDecoder ->
-    toDecoder \bytes, fmt, _ ->
+    trimDecoder \bytes, fmt, _ ->
         dropComma =
             \remaining ->
                 when remaining is
@@ -712,7 +713,7 @@ expect
 
 skipDecoder : Decoder {} Rvn
 skipDecoder =
-    toDecoder \bytes, fmt, _ ->
+    trimDecoder \bytes, fmt, _ ->
         mapToUnit = \{ result, rest } -> {
             result: Result.map result (\_ -> {}),
             rest,
@@ -846,7 +847,7 @@ expect
 # records.
 skipRecord : Decoder {} Rvn
 skipRecord =
-    toDecoder \bytes, fmt, _ ->
+    trimDecoder \bytes, fmt, _ ->
         decodeKey = \remaining ->
             when List.splitFirst remaining ':' is
                 Ok { before, after } -> { result: Str.fromUtf8 before, rest: after }
@@ -886,7 +887,7 @@ decodeRecord :
     (state -> Result val DecodeError)
     -> Decoder val Rvn
 decodeRecord = \initialState, stepField, finalizer ->
-    toDecoder \bytes, fmt, _ ->
+    trimDecoder \bytes, fmt, _ ->
         decodeKey = \remaining ->
             when List.splitFirst remaining ':' is
                 Ok { before, after } -> { result: Str.fromUtf8 before, rest: after }
@@ -1006,28 +1007,28 @@ decodeTuple :
     (state -> Result val DecodeError)
     -> Decoder val Rvn
 decodeTuple = \initialState, stepField, finalizer ->
-    toDecoder \bytes, fmt, _ ->
-        decodeSingleField : U64, state, List U8 -> DecodeResult state
-        decodeSingleField = \index, state, remaining ->
+    trimParser \_ ->
+        parseSingleField : U64, state -> Parser state Rvn
+        parseSingleField = \index, state ->
             when stepField state index is
-                Next decoder -> Decode.decodeWith remaining decoder fmt
-                TooLong -> { result: Err TooShort, rest: remaining }
+                Next decoder ->
+                    Parser.fromFn \remaining, fmt ->
+                        Decode.decodeWith remaining decoder fmt
 
-        decodeFields = \index, state, remaining ->
-            fieldResult = decodeSingleField index state remaining
-            when fieldResult.result is
-                Ok newState ->
-                    when fieldResult.rest is
-                        [')', .. as rest] -> { result: finalizer newState, rest }
-                        [',', ')', .. as rest] -> { result: finalizer newState, rest }
-                        [',', .. as rest] -> decodeFields (index + 1) newState rest
-                        rest -> { result: Err TooShort, rest }
+                TooLong -> Parser.fail
 
-                Err err -> { result: Err err, rest: fieldResult.rest }
+        parseFields = \index, state ->
+            newState <- parseSingleField index state |> Parser.try
+            byte <- Parser.nextByte |> Parser.try
+            when byte is
+                Byte ')' -> Parser.wrapResult (finalizer newState)
+                Byte ',' -> parseFields (index + 1) newState
+                _ -> Parser.fail
 
-        when bytes is
-            ['(', .. as remaining] -> decodeFields 0 initialState remaining
-            rest -> { result: Err TooShort, rest }
+        byte <- Parser.nextByte |> Parser.try
+        when byte is
+            Byte '(' -> parseFields 0 initialState
+            _ -> Parser.fail
 
 expect
     # Decodes 2-tuple
@@ -1073,67 +1074,69 @@ expect
     actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
-skipWhitespace : List U8 -> { indent : U64, rest : List U8 }
-skipWhitespace = \bytes ->
-    step : { indent : U64, rest : List U8 } -> { indent : U64, rest : List U8 }
-    step = \acc ->
-        when acc.rest is
-            [' ', .. as rest] -> step { indent: (acc.indent + 1), rest }
-            ['\t', .. as rest] -> step { indent: (acc.indent + 2), rest }
-            ['\n', .. as rest] -> step { indent: 0, rest }
-            ['#', .. as rest] ->
-                when List.splitFirst rest '\n' is
-                    Err _ ->
-                        # We reached the end of file!
-                        { indent: 0, rest: [] }
+skipWhitespace : Parser U64 Rvn
+skipWhitespace =
+    State : [Indent U64, Comment]
 
-                    Ok { after } ->
-                        step { indent: 0, rest: after }
+    step : State, U8 -> [Continue State, Break]
+    step = \state, byte ->
+        when (state, byte) is
+            (Indent i, ' ') -> Continue (Indent (i + 1))
+            (Indent i, '\t') -> Continue (Indent (i + 2))
+            (_, '\n') -> Continue (Indent 0)
+            (_, '#') -> Continue Comment
+            (Comment, _) -> Continue Comment
+            (Indent _, _) -> Break
 
-            _ -> acc
-
-    step { indent: 0, rest: bytes }
+    Parser.walkUntil (Indent 0) step
+    |> Parser.map
+        (\state ->
+            when state is
+                Indent n -> n
+                Comment -> 0
+        )
 
 expect
     # skips spaces
     bytes = Str.toUtf8 "  X"
-    expected = { indent: 2, rest: ['X'] }
-    actual = skipWhitespace bytes
+    expected = { result: Ok 2, rest: ['X'] }
+    actual = Parser.run skipWhitespace bytes rvn
     expected == actual
 
 expect
     # skips tabs
     bytes = Str.toUtf8 "\t\tX"
-    expected = { indent: 4, rest: ['X'] }
-    actual = skipWhitespace bytes
+    expected = { result: Ok 4, rest: ['X'] }
+    actual = Parser.run skipWhitespace bytes rvn
     expected == actual
 
 expect
     # skips newlinwes, which reset the indent count
     bytes = Str.toUtf8 " \n  X"
-    expected = { indent: 2, rest: ['X'] }
-    actual = skipWhitespace bytes
+    expected = { result: Ok 2, rest: ['X'] }
+    actual = Parser.run skipWhitespace bytes rvn
     expected == actual
 
 expect
     # skips comments up to the end of the line
     bytes = Str.toUtf8 " #c\n X"
-    expected = { indent: 1, rest: ['X'] }
-    actual = skipWhitespace bytes
+    expected = { result: Ok 1, rest: ['X'] }
+    actual = Parser.run skipWhitespace bytes rvn
     expected == actual
 
-# A version of toDecoder that drops surrounding whitespace.
-toDecoder :
-    (List U8, fmt, U64 -> DecodeResult val)
-    -> Decoder val fmt
-toDecoder = \decodeFn ->
-    Decode.custom \bytes, fmt ->
-        { rest, indent } = skipWhitespace bytes
-        decodeResult = decodeFn rest fmt indent
-        when decodeResult.result is
-            Err _ -> decodeResult
-            Ok val ->
-                {
-                    result: Ok val,
-                    rest: (skipWhitespace decodeResult.rest).rest,
-                }
+trimParser : (U64 -> Parser val Rvn) -> Decoder val Rvn
+trimParser = \parserFn ->
+    parser : Parser val Rvn
+    parser =
+        indent <- Parser.try skipWhitespace
+        val <- parserFn indent |> Parser.try
+        _ <- Parser.try skipWhitespace
+        Parser.wrap val
+
+    Parser.toDecoder parser
+
+trimDecoder : (List U8, Rvn, U64 -> DecodeResult val) -> Decoder val Rvn
+trimDecoder = \decodeFn ->
+    trimParser \indent ->
+        decoder = Decode.custom \bytes, fmt -> decodeFn bytes fmt indent
+        Parser.fromDecoder decoder

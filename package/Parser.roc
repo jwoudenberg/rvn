@@ -1,19 +1,28 @@
 interface Parser
     exposes [
         Parser,
+        run,
         toDecoder,
         fromDecoder,
+        fromFn,
         wrap,
+        wrapResult,
         fail,
+        map,
         try,
-        withBytes,
-        applyUntil,
+        onError,
+        peek,
+        nextByte,
+        walkUntil,
         chompWhile,
         utf8,
     ]
     imports []
 
 Parser val fmt := List U8, fmt -> DecodeResult val where fmt implements DecoderFormatting
+
+run : Parser val fmt, List U8, fmt -> DecodeResult val
+run = \@Parser parser, bytes, fmt -> parser bytes fmt
 
 toDecoder : Parser val fmt -> Decoder val fmt
 toDecoder = \@Parser parseFn ->
@@ -24,14 +33,27 @@ fromDecoder = \decoder ->
     @Parser \bytes, fmt ->
         Decode.decodeWith bytes decoder fmt
 
+fromFn : (List U8, fmt -> DecodeResult val) -> Parser val fmt
+fromFn = \parseFn ->
+    @Parser \bytes, fmt -> parseFn bytes fmt
+
 wrap : val -> Parser val fmt
 wrap = \val ->
+    wrapResult (Ok val)
+
+wrapResult : Result val DecodeError -> Parser val fmt
+wrapResult = \result ->
     @Parser \rest, _ ->
-        { result: Ok val, rest }
+        { result, rest }
 
 fail : Parser val fmt
 fail = @Parser \rest, _ ->
     { result: Err TooShort, rest }
+
+map : Parser a fmt, (a -> b) -> Parser b fmt
+map = \parser, mapFn ->
+    val <- try parser
+    wrap (mapFn val)
 
 try : Parser a fmt, (a -> Parser b fmt) -> Parser b fmt
 try = \@Parser parser, next ->
@@ -43,21 +65,41 @@ try = \@Parser parser, next ->
                 (@Parser nextParser) = next val
                 nextParser rest fmt
 
-withBytes : (List U8 -> Parser val fmt) -> Parser val fmt
-withBytes = \parse ->
+onError : Parser a fmt, Parser a fmt -> Parser a fmt
+onError = \@Parser parser, @Parser nextParser ->
     @Parser \bytes, fmt ->
-        (@Parser parser) = parse bytes
-        parser bytes fmt
+        { result, rest } = parser bytes fmt
+        when result is
+            Err _ ->
+                nextParser rest fmt
 
-applyUntil :
-    state,
-    (state -> Parser [Continue state, Break] fmt)
-    -> Parser state fmt
-applyUntil = \state, step ->
-    result <- step state |> try
-    when result is
-        Continue nextState -> applyUntil nextState step
-        Break -> wrap state
+            Ok _ ->
+                { result, rest }
+
+walkUntil : state, (state, U8 -> [Continue state, Break]) -> Parser state fmt
+walkUntil = \initialState, checkByte ->
+    step : state, List U8 -> DecodeResult state
+    step = \state, bytes ->
+        when bytes is
+            [] -> { result: Ok state, rest: [] }
+            [byte, .. as rest] ->
+                when checkByte state byte is
+                    Break -> { result: Ok state, rest: bytes }
+                    Continue newState -> step newState rest
+
+    @Parser \bytes, _ -> step initialState bytes
+
+nextByte : Parser [Byte U8, Eof] fmt
+nextByte = @Parser \bytes, _ ->
+    when bytes is
+        [] -> { result: Ok Eof, rest: [] }
+        [byte, .. as rest] -> { result: Ok (Byte byte), rest }
+
+peek : Parser val fmt -> Parser val fmt
+peek = \@Parser parser ->
+    @Parser \bytes, fmt ->
+        { result } = parser bytes fmt
+        { result, rest: bytes }
 
 chompWhile : (U8 -> Bool) -> Parser (List U8) fmt
 chompWhile = \pred ->
