@@ -648,24 +648,33 @@ expect
 decodeList : Decoder elem Rvn -> Decoder (List elem) Rvn
 decodeList = \elemDecoder ->
     toDecoder \bytes, fmt, _ ->
-        dropComma =
-            \remaining ->
-                when remaining is
-                    [',', .. as rest] -> rest
-                    rest -> rest
+        decodeElem : List elem, List U8 -> DecodeResult (List elem)
+        decodeElem = \acc, remaining ->
+            { result, rest } = Decode.decodeWith remaining elemDecoder fmt
+            when result is
+                Ok elem ->
+                    { result: Ok (List.append acc elem), rest }
 
+                Err err ->
+                    { result: Err err, rest: skipWhitespace rest }
+
+        step : List elem, List U8 -> DecodeResult (List elem)
         step = \acc, remaining ->
-            when remaining is
-                [',', ']', .. as rest] -> { result: Ok acc, rest }
-                [']', .. as rest] -> { result: Ok acc, rest }
-                rest ->
-                    next = Decode.decodeWith rest elemDecoder fmt
-                    when next.result is
-                        Ok elem ->
-                            step (List.append acc elem) (dropComma next.rest)
+            when decodeElem acc remaining is
+                { rest: [']', .. as rest], result } ->
+                    {
+                        result: result
+                        |> Result.withDefault acc
+                        |> \val -> Ok val,
+                        rest,
+                    }
 
-                        Err err ->
-                            { result: Err err, rest: next.rest }
+                { rest: [',', .. as rest], result: Ok newAcc } ->
+                    step newAcc rest
+
+                { rest, result: _ } ->
+                    { result: Err TooShort, rest }
+
         when bytes is
             ['[', .. as rest] -> step [] rest
             rest -> { result: Err TooShort, rest }
@@ -688,7 +697,7 @@ expect
 
 expect
     # Ignores whitespace in and around elements
-    bytes = Str.toUtf8 " [ 0 , 1 ] X"
+    bytes = Str.toUtf8 " [ 0 , 1 , ] X"
     expected : DecodeResult (List U8)
     expected = { result: Ok [0, 1], rest: ['X'] }
     actual = Decode.fromBytesPartial bytes rvn
@@ -856,28 +865,22 @@ skipRecord =
         decodeSingleField = \remaining ->
             keyResult = decodeKey remaining
             when keyResult.result is
-                Err _ -> { result: Err TooShort, rest: remaining }
+                Err _ -> { result: Err TooShort, rest: skipWhitespace remaining }
                 Ok _ -> Decode.decodeWith keyResult.rest skipDecoder fmt
 
         decodeFields = \remaining ->
-            fieldResult = decodeSingleField remaining
-            when fieldResult.result is
-                Ok {} ->
-                    when fieldResult.rest is
-                        ['}', .. as rest] -> { result: Ok {}, rest }
-                        [',', '}', .. as rest] -> { result: Ok {}, rest }
-                        [',', .. as rest] -> decodeFields rest
-                        rest -> { result: Err TooShort, rest }
+            when decodeSingleField remaining is
+                { rest: ['}', .. as rest], result: _ } ->
+                    { result: Ok {}, rest }
 
-                Err err -> { result: Err err, rest: fieldResult.rest }
+                { rest: [',', .. as rest], result: Ok _ } ->
+                    decodeFields rest
+
+                { rest, result: _ } ->
+                    { result: Err TooShort, rest }
 
         when bytes is
-            ['{', .. as remaining] ->
-                when remaining is
-                    ['}', .. as rest] -> { result: Ok {}, rest }
-                    [',', '}', .. as rest] -> { result: Ok {}, rest }
-                    _ -> decodeFields remaining
-
+            ['{', .. as remaining] -> decodeFields remaining
             rest -> { result: Err TooShort, rest }
 
 decodeRecord :
@@ -906,30 +909,31 @@ decodeRecord = \initialState, stepField, finalizer ->
         decodeSingleField = \state, remaining ->
             keyResult = decodeKey remaining
             when keyResult.result is
-                Err _ -> { result: Err TooShort, rest: remaining }
+                Err _ -> { result: Err TooShort, rest: skipWhitespace remaining }
                 Ok key -> decodeValue key state keyResult.rest
 
         decodeFields = \state, remaining ->
-            fieldResult = decodeSingleField state remaining
-            when fieldResult.result is
-                Ok newState ->
-                    when fieldResult.rest is
-                        ['}', .. as rest] -> { result: finalizer newState, rest }
-                        [',', '}', .. as rest] -> { result: finalizer newState, rest }
-                        [',', .. as rest] -> decodeFields newState rest
-                        rest -> { result: Err TooShort, rest }
+            when decodeSingleField state remaining is
+                { rest: ['}', .. as rest], result } ->
+                    {
+                        result: result
+                        |> Result.withDefault state
+                        |> finalizer,
+                        rest,
+                    }
 
-                Err err -> { result: Err err, rest: fieldResult.rest }
+                { rest: [',', .. as rest], result: Ok newState } ->
+                    decodeFields newState rest
+
+                { rest, result: _ } ->
+                    { result: Err TooShort, rest }
 
         when bytes is
             ['{', .. as remaining] ->
-                when remaining is
-                    ['}', .. as rest] -> { result: finalizer initialState, rest }
-                    [',', '}', .. as rest] -> { result: finalizer initialState, rest }
-                    _ -> decodeFields initialState remaining
+                decodeFields initialState remaining
 
-            rest -> { result: Err TooShort, rest }
-
+            rest ->
+                { result: Err TooShort, rest }
 expect
     # Decodes an empty record
     bytes = Str.toUtf8 "{}X"
@@ -940,6 +944,20 @@ expect
 expect
     # Skips an empty record
     bytes = Str.toUtf8 "{}X"
+    expected = { result: Ok {}, rest: ['X'] }
+    actual = Decode.decodeWith bytes skipRecord rvn
+    expected == actual
+
+expect
+    # Decodes an empty record
+    bytes = Str.toUtf8 "{ }X"
+    expected = { result: Ok {}, rest: ['X'] }
+    actual = Decode.fromBytesPartial bytes rvn
+    expected == actual
+
+expect
+    # Skips an empty record with space between
+    bytes = Str.toUtf8 "{ }X"
     expected = { result: Ok {}, rest: ['X'] }
     actual = Decode.decodeWith bytes skipRecord rvn
     expected == actual
@@ -960,7 +978,7 @@ expect
 
 expect
     # Skips whitespace around the record and elements
-    bytes = Str.toUtf8 " {a: 1 ,b: 2 } X"
+    bytes = Str.toUtf8 " {a: 1 ,b: 2 , } X"
     expected = { result: Ok { a: 1, b: 2 }, rest: ['X'] }
     actual = Decode.fromBytesPartial bytes rvn
     expected == actual
@@ -980,7 +998,7 @@ expect
     expected == actual
 
 expect
-    # Decodes a record with a trailing comma on the last field
+    # Skips a record with a trailing comma on the last field
     bytes = Str.toUtf8 "{a:1,}X"
     expected = { result: Ok {}, rest: ['X'] }
     actual = Decode.decodeWith bytes skipRecord rvn
@@ -1019,11 +1037,13 @@ decodeTuple = \initialState, stepField, finalizer ->
                 Ok newState ->
                     when fieldResult.rest is
                         [')', .. as rest] -> { result: finalizer newState, rest }
-                        [',', ')', .. as rest] -> { result: finalizer newState, rest }
                         [',', .. as rest] -> decodeFields (index + 1) newState rest
                         rest -> { result: Err TooShort, rest }
 
-                Err err -> { result: Err err, rest: fieldResult.rest }
+                Err err ->
+                    when skipWhitespace remaining is
+                        [')', .. as rest] -> { result: finalizer state, rest }
+                        _ -> { result: Err err, rest: fieldResult.rest }
 
         when bytes is
             ['(', .. as remaining] -> decodeFields 0 initialState remaining
@@ -1052,7 +1072,7 @@ expect
 
 expect
     # Decodes tuple with whitespace surrounding it and its elements
-    bytes = Str.toUtf8 " ( 1 , 2 ) X"
+    bytes = Str.toUtf8 " ( 1 , 2 , ) X"
     expected = { result: Ok (1, 2), rest: ['X'] }
     actual = Decode.fromBytesPartial bytes rvn
     expected == actual
@@ -1073,8 +1093,11 @@ expect
     actual = Decode.fromBytesPartial bytes rvn
     expected == actual
 
-skipWhitespace : List U8 -> { indent : U64, rest : List U8 }
-skipWhitespace = \bytes ->
+skipWhitespace : List U8 -> List U8
+skipWhitespace = \bytes -> (skipWhitespaceIndent bytes).rest
+
+skipWhitespaceIndent : List U8 -> { indent : U64, rest : List U8 }
+skipWhitespaceIndent = \bytes ->
     step : { indent : U64, rest : List U8 } -> { indent : U64, rest : List U8 }
     step = \acc ->
         when acc.rest is
@@ -1098,28 +1121,28 @@ expect
     # skips spaces
     bytes = Str.toUtf8 "  X"
     expected = { indent: 2, rest: ['X'] }
-    actual = skipWhitespace bytes
+    actual = skipWhitespaceIndent bytes
     expected == actual
 
 expect
     # skips tabs
     bytes = Str.toUtf8 "\t\tX"
     expected = { indent: 4, rest: ['X'] }
-    actual = skipWhitespace bytes
+    actual = skipWhitespaceIndent bytes
     expected == actual
 
 expect
     # skips newlinwes, which reset the indent count
     bytes = Str.toUtf8 " \n  X"
     expected = { indent: 2, rest: ['X'] }
-    actual = skipWhitespace bytes
+    actual = skipWhitespaceIndent bytes
     expected == actual
 
 expect
     # skips comments up to the end of the line
     bytes = Str.toUtf8 " #c\n X"
     expected = { indent: 1, rest: ['X'] }
-    actual = skipWhitespace bytes
+    actual = skipWhitespaceIndent bytes
     expected == actual
 
 # A version of toDecoder that drops surrounding whitespace.
@@ -1128,12 +1151,12 @@ toDecoder :
     -> Decoder val fmt
 toDecoder = \decodeFn ->
     Decode.custom \bytes, fmt ->
-        { rest, indent } = skipWhitespace bytes
+        { rest, indent } = skipWhitespaceIndent bytes
         decodeResult = decodeFn rest fmt indent
         when decodeResult.result is
             Err _ -> decodeResult
             Ok val ->
                 {
                     result: Ok val,
-                    rest: (skipWhitespace decodeResult.rest).rest,
+                    rest: (skipWhitespaceIndent decodeResult.rest).rest,
                 }
