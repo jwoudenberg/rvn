@@ -891,9 +891,22 @@ decodeRecord :
 decodeRecord = \initialState, stepField, finalizer ->
     toDecoder \bytes, fmt, _ ->
         decodeKey = \remaining ->
-            when List.splitFirst remaining ':' is
-                Ok { before, after } -> { result: Str.fromUtf8 before, rest: after }
-                Err _ -> { result: Err TooShort, rest: remaining }
+            keyLen =
+                List.walkUntil
+                    remaining
+                    0
+                    (\count, byte ->
+                        when byte is
+                            ' ' | '\t' | '\n' | '#' | ':' -> Break count
+                            _ -> Continue (count + 1)
+                    )
+            { before, others } = List.split remaining keyLen
+            when skipWhitespace others is
+                [':', .. as rest] ->
+                    { result: Str.fromUtf8 before, rest }
+
+                _ ->
+                    { result: Err TooShort, rest: remaining }
 
         decodeValue : Str, state, List U8 -> DecodeResult state
         decodeValue = \key, state, remaining ->
@@ -907,10 +920,9 @@ decodeRecord = \initialState, stepField, finalizer ->
 
         decodeSingleField : state, List U8 -> DecodeResult state
         decodeSingleField = \state, remaining ->
-            keyResult = decodeKey remaining
-            when keyResult.result is
-                Err _ -> { result: Err TooShort, rest: skipWhitespace remaining }
-                Ok key -> decodeValue key state keyResult.rest
+            when decodeKey (skipWhitespace remaining) is
+                { result: Err _, rest } -> { result: Err TooShort, rest }
+                { result: Ok key, rest } -> decodeValue key state rest
 
         decodeFields = \state, remaining ->
             when decodeSingleField state remaining is
@@ -978,7 +990,7 @@ expect
 
 expect
     # Skips whitespace around the record and elements
-    bytes = Str.toUtf8 " {a: 1 ,b: 2 , } X"
+    bytes = Str.toUtf8 " { a : 1 , b : 2 , } X"
     expected = { result: Ok { a: 1, b: 2 }, rest: ['X'] }
     actual = Decode.fromBytesPartial bytes rvn
     expected == actual
@@ -986,6 +998,20 @@ expect
 expect
     # Skips records containing whitespace around the record and elements
     bytes = Str.toUtf8 " { a : 1 , b : 2 } X"
+    expected = { result: Ok {}, rest: ['X'] }
+    actual = Decode.decodeWith bytes skipRecord rvn
+    expected == actual
+
+expect
+    # Skips comment directly after key
+    bytes = Str.toUtf8 "{a#hi\n : 1}X"
+    expected = { result: Ok { a: 1 }, rest: ['X'] }
+    actual = Decode.fromBytesPartial bytes rvn
+    expected == actual
+
+expect
+    # Skips a record with a comment directly after key
+    bytes = Str.toUtf8 "{a#hi\n : 1}X"
     expected = { result: Ok {}, rest: ['X'] }
     actual = Decode.decodeWith bytes skipRecord rvn
     expected == actual
