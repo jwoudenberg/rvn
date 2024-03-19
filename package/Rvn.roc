@@ -569,24 +569,68 @@ expect
 
 decodeString : Decoder Str Rvn
 decodeString = toDecoder \bytes, @Rvn {}, _ ->
-    step = \acc, remaining ->
+    appendRange = \{ acc, start, len } -> {
+        acc: List.concat acc (List.sublist bytes { start, len }),
+        start: start + len,
+        len: 0,
+    }
+
+    appendByte = \{ acc, start, len }, byte -> {
+        acc: List.concat acc [byte],
+        start,
+        len,
+    }
+
+    step = \state, remaining ->
         when remaining is
-            ['\\', 'n', .. as rest] -> step (List.concat acc ['\n']) rest
-            ['\\', 't', .. as rest] -> step (List.concat acc ['\t']) rest
-            ['\\', '"', .. as rest] -> step (List.concat acc ['"']) rest
-            ['\\', '\\', .. as rest] -> step (List.concat acc ['\\']) rest
-            ['\\', '$', .. as rest] -> step (List.concat acc ['$']) rest
-            ['\\', 'u', '(', .. as rest] -> crash "TODO: support unicode code-point escape codes"
-            ['\\', .. as rest] -> { result: Err TooShort, rest }
+            ['\\', 'n', .. as rest] ->
+                state
+                |> appendRange
+                |> appendByte '\n'
+                |> step rest
+
+            ['\\', 't', .. as rest] ->
+                state
+                |> appendRange
+                |> appendByte '\t'
+                |> step rest
+
+            ['\\', '"', .. as rest] ->
+                state
+                |> appendRange
+                |> appendByte '"'
+                |> step rest
+
+            ['\\', '\\', .. as rest] ->
+                state
+                |> appendRange
+                |> appendByte '\\'
+                |> step rest
+
+            ['\\', '$', .. as rest] ->
+                state
+                |> appendRange
+                |> appendByte '$'
+                |> step rest
+
+            ['\\', 'u', '(', .. as rest] ->
+                crash "TODO: support unicode code-point escape codes"
+
+            ['\\', .. as rest] ->
+                { result: Err TooShort, rest }
+
             ['"', .. as rest] ->
                 {
-                    result: Str.fromUtf8 acc |> Result.mapErr (\_ -> TooShort),
+                    result: state
+                    |> appendRange
+                    |> .acc
+                    |> Str.fromUtf8
+                    |> Result.mapErr (\_ -> TooShort),
                     rest,
                 }
 
-            [byte, .. as rest] ->
-                # TODO: optimize this to copy ranges of unescaped chars.
-                step (List.concat acc [byte]) rest
+            [_, .. as rest] ->
+                step { state & len: state.len + 1 } rest
 
             [] ->
                 # Ending up here means we reach end of input before the closing quote.
@@ -597,7 +641,7 @@ decodeString = toDecoder \bytes, @Rvn {}, _ ->
 
     when bytes is
         ['"', '"', '"', .. as rest] -> crash "TODO: support triple-quote strings"
-        ['"', .. as rest] -> step [] rest
+        ['"', .. as rest] -> step { start: 1, len: 0, acc: [] } rest
         rest -> { result: Err TooShort, rest }
 
 expect
