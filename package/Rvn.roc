@@ -614,7 +614,8 @@ decodeString = toDecoder \bytes, @Rvn {}, _ ->
                 |> step rest
 
             ['\\', 'u', '(', .. as rest] ->
-                crash "TODO: support unicode code-point escape codes"
+                # TODO: support unicode code-point escape codes
+                { result: Err TooShort, rest }
 
             ['\\', .. as rest] ->
                 { result: Err TooShort, rest }
@@ -640,7 +641,10 @@ decodeString = toDecoder \bytes, @Rvn {}, _ ->
                 }
 
     when bytes is
-        ['"', '"', '"', .. as rest] -> crash "TODO: support triple-quote strings"
+        ['"', '"', '"', .. as rest] ->
+            # TODO: support triple-quote strings
+            { result: Err TooShort, rest }
+
         ['"', .. as rest] -> step { start: 1, len: 0, acc: [] } rest
         rest -> { result: Err TooShort, rest }
 
@@ -809,17 +813,10 @@ skipDecoder =
             ['{', ..] ->
                 Decode.decodeWith bytes skipRecord fmt
 
-            rest -> decodingCrash { rest, msg: "failed decoding while skipping a record field" }
-
-decodingCrash : { rest : List U8, msg : Str } -> *
-decodingCrash = \{ rest, msg } ->
-    when Str.fromUtf8 rest is
-        Err _ -> crash msg
-        Ok str ->
-            words = Str.split str " "
-            excerpt = List.takeFirst words 3 |> Str.joinWith ","
-
-            crash "$(msg): $(excerpt)..."
+            rest ->
+                # We will end up here in case of syntax errors, or when
+                # attempting to decode a tag.
+                { result: Err TooShort, rest }
 
 expect
     # Skips binary numbers
