@@ -1,7 +1,8 @@
 interface Rvn
     exposes [
         Rvn,
-        rvn,
+        compact,
+        pretty,
     ]
     imports [
         Encode.{
@@ -10,7 +11,7 @@ interface Rvn
         },
     ]
 
-Rvn := {}
+Rvn := { indent : U64, format : [Compact, Pretty], inTagParam : Bool }
     implements [
         EncoderFormatting {
             u8: encodeU8,
@@ -55,73 +56,88 @@ Rvn := {}
         },
     ]
 
-rvn : Rvn
-rvn = @Rvn {}
+compact : Rvn
+compact = @Rvn { format: Compact, indent: 0, inTagParam: Bool.false }
+
+pretty : Rvn
+pretty = @Rvn { format: Pretty, indent: 0, inTagParam: Bool.false }
 
 numToBytes = \n ->
     n |> Num.toStr |> Str.toUtf8
 
 encodeU8 = \n ->
-    Encode.custom \bytes, @Rvn {} ->
+    Encode.custom \bytes, @Rvn _ ->
         List.concat bytes (numToBytes n)
 
 encodeU16 = \n ->
-    Encode.custom \bytes, @Rvn {} ->
+    Encode.custom \bytes, @Rvn _ ->
         List.concat bytes (numToBytes n)
 
 encodeU32 = \n ->
-    Encode.custom \bytes, @Rvn {} ->
+    Encode.custom \bytes, @Rvn _ ->
         List.concat bytes (numToBytes n)
 
 encodeU64 = \n ->
-    Encode.custom \bytes, @Rvn {} ->
+    Encode.custom \bytes, @Rvn _ ->
         List.concat bytes (numToBytes n)
 
 encodeU128 = \n ->
-    Encode.custom \bytes, @Rvn {} ->
+    Encode.custom \bytes, @Rvn _ ->
         List.concat bytes (numToBytes n)
 
 encodeI8 = \n ->
-    Encode.custom \bytes, @Rvn {} ->
+    Encode.custom \bytes, @Rvn _ ->
         List.concat bytes (numToBytes n)
 
 encodeI16 = \n ->
-    Encode.custom \bytes, @Rvn {} ->
+    Encode.custom \bytes, @Rvn _ ->
         List.concat bytes (numToBytes n)
 
 encodeI32 = \n ->
-    Encode.custom \bytes, @Rvn {} ->
+    Encode.custom \bytes, @Rvn _ ->
         List.concat bytes (numToBytes n)
 
 encodeI64 = \n ->
-    Encode.custom \bytes, @Rvn {} ->
+    Encode.custom \bytes, @Rvn _ ->
         List.concat bytes (numToBytes n)
 
 encodeI128 = \n ->
-    Encode.custom \bytes, @Rvn {} ->
+    Encode.custom \bytes, @Rvn _ ->
         List.concat bytes (numToBytes n)
 
 encodeF32 = \n ->
-    Encode.custom \bytes, @Rvn {} ->
+    Encode.custom \bytes, @Rvn _ ->
         List.concat bytes (numToBytes n)
 
 encodeF64 = \n ->
-    Encode.custom \bytes, @Rvn {} ->
+    Encode.custom \bytes, @Rvn _ ->
         List.concat bytes (numToBytes n)
 
 encodeDec = \n ->
-    Encode.custom \bytes, @Rvn {} ->
+    Encode.custom \bytes, @Rvn _ ->
         List.concat bytes (numToBytes n)
 
 encodeBool = \byte ->
-    Encode.custom \bytes, @Rvn {} ->
+    Encode.custom \bytes, @Rvn _ ->
         if byte then
             List.concat bytes (Str.toUtf8 "Bool.true")
         else
             List.concat bytes (Str.toUtf8 "Bool.false")
 
+expect
+    # encode Bool.true
+    actual = Encode.toBytes Bool.true compact
+    expected = ['B', 'o', 'o', 'l', '.', 't', 'r', 'u', 'e']
+    actual == expected
+
+expect
+    # encode Bool.false
+    actual = Encode.toBytes Bool.false compact
+    expected = ['B', 'o', 'o', 'l', '.', 'f', 'a', 'l', 's', 'e']
+    actual == expected
+
 encodeString = \str ->
-    Encode.custom \bytes, @Rvn {} ->
+    Encode.custom \bytes, @Rvn _ ->
         strBytes = Str.toUtf8 str
 
         encodeSliceWithoutEscaping = \{ start, len, acc } -> {
@@ -148,52 +164,52 @@ encodeString = \str ->
                 '$' -> escape state '$'
                 _ -> { start: state.start, len: state.len + 1, acc: state.acc }
 
-        encodedStr =
+        encodeAndAppend = \acc ->
             List.walk
                 strBytes
-                { start: 0, len: 0, acc: bytes }
+                { start: 0, len: 0, acc }
                 escapeAndAppend
             |> encodeSliceWithoutEscaping
             |> .acc
 
         bytes
         |> List.concat ['"']
-        |> List.concat encodedStr
+        |> encodeAndAppend
         |> List.concat ['"']
 
 expect
     str = "abc"
-    actual = Encode.toBytes str rvn
+    actual = Encode.toBytes str compact
     expected = ['"', 'a', 'b', 'c', '"']
     actual == expected
 
 expect
     str = "a\nc"
-    actual = Encode.toBytes str rvn
+    actual = Encode.toBytes str compact
     expected = ['"', 'a', '\\', 'n', 'c', '"']
     actual == expected
 
 expect
     str = "a\tc"
-    actual = Encode.toBytes str rvn
+    actual = Encode.toBytes str compact
     expected = ['"', 'a', '\\', 't', 'c', '"']
     actual == expected
 
 expect
     str = "a\"c"
-    actual = Encode.toBytes str rvn
+    actual = Encode.toBytes str compact
     expected = ['"', 'a', '\\', '"', 'c', '"']
     actual == expected
 
 expect
     str = "a\\c"
-    actual = Encode.toBytes str rvn
+    actual = Encode.toBytes str compact
     expected = ['"', 'a', '\\', '\\', 'c', '"']
     actual == expected
 
 expect
     str = "a\$c"
-    actual = Encode.toBytes str rvn
+    actual = Encode.toBytes str compact
     expected = ['"', 'a', '\\', '$', 'c', '"']
     actual == expected
 
@@ -201,91 +217,201 @@ encodeList : List elem, (elem -> Encoder Rvn) -> Encoder Rvn
 encodeList = \list, encodeElem ->
     Encode.custom \bytes, fmt ->
         addEncodedElem = \acc, elem ->
+            indented = upIndent fmt
             acc
-            |> Encode.appendWith (encodeElem elem) fmt
-            |> List.concat [',']
+            |> appendIndent indented
+            |> Encode.appendWith (encodeElem elem) indented
+            |> List.append ','
+            |> appendIfPretty indented '\n'
 
         bytes
         |> List.concat ['[']
+        |> appendIfPretty fmt '\n'
         |> \newBytes -> List.walk list newBytes addEncodedElem
+        |> appendIndent fmt
         |> List.concat [']']
 
 expect
+    # Encoding an empty list
     list : List U16
     list = []
-    actual = Encode.toBytes list rvn
-    expected = ['[', ']']
+    actual = Encode.toBytes list compact
+    expected = Str.toUtf8 "[]"
     actual == expected
 
 expect
+    # Compact list encoding
     list = [1, 2, 3]
-    actual = Encode.toBytes list rvn
-    expected = ['[', '1', ',', '2', ',', '3', ',', ']']
+    actual = Encode.toBytes list compact
+    expected = Str.toUtf8 "[1,2,3,]"
+    actual == expected
+
+expect
+    # Pretty list encoding
+    list = [1, 2, 3]
+    actual = Encode.toBytes list pretty
+    expected = Str.toUtf8
+        """
+        [
+            1,
+            2,
+            3,
+        ]
+        """
     actual == expected
 
 encodeRecord : List { key : Str, value : Encoder Rvn } -> Encoder Rvn
 encodeRecord = \fields ->
     Encode.custom \bytes, fmt ->
         addEncodedField = \acc, { key, value } ->
+            indented = upIndent fmt
             acc
+            |> appendIndent indented
             |> List.concat (Str.toUtf8 key)
             |> List.concat [':']
-            |> Encode.appendWith value fmt
+            |> appendIfPretty indented ' '
+            |> Encode.appendWith value indented
             |> List.concat [',']
+            |> appendIfPretty indented '\n'
 
         bytes
         |> List.concat ['{']
+        |> appendIfPretty fmt '\n'
         |> \newBytes -> List.walk fields newBytes addEncodedField
+        |> appendIndent fmt
         |> List.concat ['}']
 
 expect
+    # Encoding an empty record
     record = {}
-    actual = Encode.toBytes record rvn
-    expected = ['{', '}']
+    actual = Encode.toBytes record compact
+    expected = Str.toUtf8 "{}"
     actual == expected
 
 expect
+    # Compact record encoding
     record = { one: 1, two: 2 }
-    actual = Encode.toBytes record rvn
-    expected = ['{', 'o', 'n', 'e', ':', '1', ',', 't', 'w', 'o', ':', '2', ',', '}']
+    actual = Encode.toBytes record compact
+    expected = Str.toUtf8 "{one:1,two:2,}"
+    actual == expected
+
+expect
+    # Pretty record encoding
+    record = { one: 1, two: 2 }
+    actual = Encode.toBytes record pretty
+    expected = Str.toUtf8
+        """
+        {
+            one: 1,
+            two: 2,
+        }
+        """
     actual == expected
 
 encodeTuple : List (Encoder Rvn) -> Encoder Rvn
 encodeTuple = \elems ->
     Encode.custom \bytes, fmt ->
         addEncodedElem = \acc, elem ->
+            indented = upIndent fmt
             acc
-            |> Encode.appendWith elem fmt
+            |> appendIndent indented
+            |> Encode.appendWith elem indented
             |> List.concat [',']
+            |> appendIfPretty indented '\n'
 
         bytes
         |> List.concat ['(']
+        |> appendIfPretty fmt '\n'
         |> \newBytes -> List.walk elems newBytes addEncodedElem
+        |> appendIndent fmt
         |> List.concat [')']
 
 expect
+    # Compact tuple encoding
     tuple = (1, 2)
-    actual = Encode.toBytes tuple rvn
-    expected = ['(', '1', ',', '2', ',', ')']
+    actual = Encode.toBytes tuple compact
+    expected = Str.toUtf8 "(1,2,)"
+    actual == expected
+
+expect
+    # Pretty tuple encoding
+    tuple = (1, 2)
+    actual = Encode.toBytes tuple pretty
+    expected = Str.toUtf8
+        """
+        (
+            1,
+            2,
+        )
+        """
     actual == expected
 
 encodeTag : Str, List (Encoder Rvn) -> Encoder Rvn
 encodeTag = \tag, attrs ->
     Encode.custom \bytes, fmt ->
         addEncodedAttr = \acc, elem ->
+            indented = upIndent fmt
             acc
-            |> List.concat ['(']
-            |> Encode.appendWith elem fmt
-            |> List.concat [')']
+            |> appendIfPretty indented '\n'
+            |> appendIndent indented
+            |> appendIfCompact indented ' '
+            |> Encode.appendWith elem indented
 
         bytes
         |> List.concat (Str.toUtf8 tag)
         |> \newBytes -> List.walk attrs newBytes addEncodedAttr
 
 expect
+    # Compact tag encoding
     tagged = Foo 1 2
-    actual = Encode.toBytes tagged rvn
-    expected = ['F', 'o', 'o', '(', '1', ')', '(', '2', ')']
+    actual = Encode.toBytes tagged compact
+    expected = Str.toUtf8 "Foo 1 2"
+    actual == expected
+
+expect
+    # Pretty tag encoding
+    tagged = Foo 1 2
+    actual = Encode.toBytes tagged pretty
+    expected = Str.toUtf8
+        """
+        Foo
+            1
+            2
+        """
+    actual == expected
+
+expect
+    # Pretty encoding of nested structure
+    nested =
+        Foo
+            0
+            {
+                items: (
+                    "hi",
+                    [
+                        2,
+                        3,
+                        4,
+                    ],
+                ),
+            }
+    actual = Encode.toBytes nested pretty |> Str.fromUtf8
+    expected =
+        Ok
+            """
+            Foo
+                0
+                {
+                    items: (
+                        "hi",
+                        [
+                            2,
+                            3,
+                            4,
+                        ],
+                    ),
+                }
+            """
     actual == expected
 
 decodeUtf8Bytes = \bytes, fromStr, len ->
@@ -337,34 +463,34 @@ isHexDigit = \byte ->
     || (byte >= 'A' && byte <= 'F')
 
 decodeU8 : Decoder U8 Rvn
-decodeU8 = toDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toU8
+decodeU8 = toDecoder \bytes, @Rvn _, _ -> decodeInt bytes Str.toU8
 
 expect
     # Parse decimal numbers
     bytes = Str.toUtf8 "23X"
     expected = { result: Ok (Num.toU8 23), rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     actual == expected
 
 expect
     # Parse binary numbers
     bytes = Str.toUtf8 "0b101X"
     expected = { result: Ok (Num.toU8 5), rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     actual == expected
 
 expect
     # Parse hex numbers
     bytes = Str.toUtf8 "0x1aX"
     expected = { result: Ok (Num.toU8 26), rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     actual == expected
 
 expect
     # Ignore surrounding whitespace
     bytes = Str.toUtf8 " 2 X"
     expected = { result: Ok (Num.toU8 2), rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     actual == expected
 
 expect
@@ -372,7 +498,7 @@ expect
     bytes = Str.toUtf8 "999"
     expected : DecodeResult U8
     expected = { result: Err TooShort, rest: [] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     actual == expected
 
 expect
@@ -380,70 +506,70 @@ expect
     bytes = ['X']
     expected : DecodeResult U8
     expected = { result: Err TooShort, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     actual == expected
 
 decodeU16 : Decoder U16 Rvn
-decodeU16 = toDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toU16
+decodeU16 = toDecoder \bytes, @Rvn _, _ -> decodeInt bytes Str.toU16
 
 decodeU32 : Decoder U32 Rvn
-decodeU32 = toDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toU32
+decodeU32 = toDecoder \bytes, @Rvn _, _ -> decodeInt bytes Str.toU32
 
 decodeU64 : Decoder U64 Rvn
-decodeU64 = toDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toU64
+decodeU64 = toDecoder \bytes, @Rvn _, _ -> decodeInt bytes Str.toU64
 
 decodeU128 : Decoder U128 Rvn
-decodeU128 = toDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toU128
+decodeU128 = toDecoder \bytes, @Rvn _, _ -> decodeInt bytes Str.toU128
 
 decodeI8 : Decoder I8 Rvn
-decodeI8 = toDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toI8
+decodeI8 = toDecoder \bytes, @Rvn _, _ -> decodeInt bytes Str.toI8
 
 expect
     # Parse positive numbers
     bytes = Str.toUtf8 "23X"
     expected = { result: Ok (Num.toI8 23), rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     actual == expected
 
 expect
     # Parse negative numbers
     bytes = Str.toUtf8 "-0b101X"
     expected = { result: Ok (Num.toI8 -5), rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     actual == expected
 
 expect
     # Parse negative binary numbers
     bytes = Str.toUtf8 "-23X"
     expected = { result: Ok (Num.toI8 -23), rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     actual == expected
 
 expect
     # Parse negative hex numbers
     bytes = Str.toUtf8 "-0x1aX"
     expected = { result: Ok (Num.toI8 -26), rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     actual == expected
 
 expect
     # Ignore surrounding whitespace
     bytes = Str.toUtf8 " 2 X"
     expected = { result: Ok (Num.toI8 2), rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     actual == expected
 
 decodeI16 : Decoder I16 Rvn
-decodeI16 = toDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toI16
+decodeI16 = toDecoder \bytes, @Rvn _, _ -> decodeInt bytes Str.toI16
 
 decodeI32 : Decoder I32 Rvn
-decodeI32 = toDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toI32
+decodeI32 = toDecoder \bytes, @Rvn _, _ -> decodeInt bytes Str.toI32
 
 decodeI64 : Decoder I64 Rvn
-decodeI64 = toDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toI64
+decodeI64 = toDecoder \bytes, @Rvn _, _ -> decodeInt bytes Str.toI64
 
 decodeI128 : Decoder I128 Rvn
-decodeI128 = toDecoder \bytes, @Rvn {}, _ -> decodeInt bytes Str.toI128
+decodeI128 = toDecoder \bytes, @Rvn _, _ -> decodeInt bytes Str.toI128
 
 decodeFloat = \bytes, fromStr ->
     countMinusSign =
@@ -475,13 +601,13 @@ decodeFloat = \bytes, fromStr ->
     decodeUtf8Bytes bytes fromStr len
 
 decodeF32 : Decoder F32 Rvn
-decodeF32 = toDecoder \bytes, @Rvn {}, _ -> decodeFloat bytes Str.toF32
+decodeF32 = toDecoder \bytes, @Rvn _, _ -> decodeFloat bytes Str.toF32
 
 decodeF64 : Decoder F64 Rvn
-decodeF64 = toDecoder \bytes, @Rvn {}, _ -> decodeFloat bytes Str.toF64
+decodeF64 = toDecoder \bytes, @Rvn _, _ -> decodeFloat bytes Str.toF64
 
 decodeDec : Decoder Dec Rvn
-decodeDec = toDecoder \bytes, @Rvn {}, _ -> decodeFloat bytes Str.toDec
+decodeDec = toDecoder \bytes, @Rvn _, _ -> decodeFloat bytes Str.toDec
 
 expect
     # Parse positive numbers
@@ -489,7 +615,7 @@ expect
     n : Dec
     n = 23
     expected = { result: Ok n, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 expect
@@ -498,7 +624,7 @@ expect
     n : Dec
     n = -23
     expected = { result: Ok n, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 expect
@@ -507,7 +633,7 @@ expect
     n : Dec
     n = 12.34
     expected = { result: Ok n, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 expect
@@ -516,7 +642,7 @@ expect
     n : Dec
     n = 2
     expected = { result: Ok n, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 expect
@@ -524,12 +650,12 @@ expect
     bytes = ['X']
     expected : DecodeResult Dec
     expected = { result: Err TooShort, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 decodeBool : Decoder Bool Rvn
 decodeBool =
-    toDecoder \bytes, @Rvn {}, _ ->
+    toDecoder \bytes, @Rvn _, _ ->
         when bytes is
             ['B', 'o', 'o', 'l', '.', 't', 'r', 'u', 'e', .. as rest] ->
                 { result: Ok Bool.true, rest }
@@ -543,20 +669,20 @@ decodeBool =
 expect
     bytes = Str.toUtf8 "Bool.trueX"
     expected = { result: Ok Bool.true, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 expect
     bytes = Str.toUtf8 "Bool.falseX"
     expected = { result: Ok Bool.false, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 expect
     # Ignore surrounding whitespace
     bytes = Str.toUtf8 " Bool.false X"
     expected = { result: Ok Bool.false, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 expect
@@ -564,11 +690,11 @@ expect
     bytes = ['X']
     expected : DecodeResult Bool
     expected = { result: Err TooShort, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 decodeString : Decoder Str Rvn
-decodeString = toDecoder \bytes, @Rvn {}, _ ->
+decodeString = toDecoder \bytes, @Rvn _, _ ->
     appendRange = \{ acc, start, len } -> {
         acc: List.concat acc (List.sublist bytes { start, len }),
         start: start + len,
@@ -653,28 +779,28 @@ expect
     bytes = ['X']
     expected : DecodeResult Str
     expected = { result: Err TooShort, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 expect
     # Parses a simple string
     bytes = ['"', 'H', 'i', '"', 'X']
     expected = { result: Ok "Hi", rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 expect
     # Ignores surrounding whitespace
     bytes = [' ', '"', 'H', 'i', '"', ' ', 'X']
     expected = { result: Ok "Hi", rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 expect
     # Parser string with special characters
     bytes = ['"', '\\', 'n', '\\', 't', '\\', '"', '\\', '\\', '\\', '$', '"']
     expected = { result: Ok "\n\t\"\\\$", rest: [] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 expect
@@ -682,7 +808,7 @@ expect
     bytes = ['"', '\\', 'X', '"']
     expected : DecodeResult U8
     expected = { result: Err TooShort, rest: ['"', '\\', 'X', '"'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 expect
@@ -690,7 +816,7 @@ expect
     bytes = ['"', 'H', 'i']
     expected : DecodeResult U8
     expected = { result: Err TooShort, rest: ['"', 'H', 'i'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 decodeList : Decoder elem Rvn -> Decoder (List elem) Rvn
@@ -732,7 +858,7 @@ expect
     bytes = ['[', ']', 'X']
     expected : DecodeResult (List U8)
     expected = { result: Ok [], rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 expect
@@ -740,7 +866,7 @@ expect
     bytes = Str.toUtf8 "[0,1]X"
     expected : DecodeResult (List U8)
     expected = { result: Ok [0, 1], rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 expect
@@ -748,7 +874,7 @@ expect
     bytes = Str.toUtf8 " [ 0 , 1 , ] X"
     expected : DecodeResult (List U8)
     expected = { result: Ok [0, 1], rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 expect
@@ -756,7 +882,7 @@ expect
     bytes = Str.toUtf8 "[0,1,]X"
     expected : DecodeResult (List U8)
     expected = { result: Ok [0, 1], rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 expect
@@ -764,7 +890,7 @@ expect
     bytes = Str.toUtf8 "[0"
     expected : DecodeResult (List U8)
     expected = { result: Err TooShort, rest: [] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 skipDecoder : Decoder {} Rvn
@@ -823,7 +949,7 @@ expect
     bytes = Str.toUtf8 "0b01X"
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipDecoder rvn
+    actual = Decode.decodeWith bytes skipDecoder compact
     expected == actual
 
 expect
@@ -831,7 +957,7 @@ expect
     bytes = Str.toUtf8 "0xf1X"
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipDecoder rvn
+    actual = Decode.decodeWith bytes skipDecoder compact
     expected == actual
 
 expect
@@ -839,7 +965,7 @@ expect
     bytes = Str.toUtf8 "1_2X"
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipDecoder rvn
+    actual = Decode.decodeWith bytes skipDecoder compact
     expected == actual
 
 expect
@@ -847,7 +973,7 @@ expect
     bytes = Str.toUtf8 "-0.1X"
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipDecoder rvn
+    actual = Decode.decodeWith bytes skipDecoder compact
     expected == actual
 
 expect
@@ -855,7 +981,7 @@ expect
     bytes = Str.toUtf8 "Bool.trueX"
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipDecoder rvn
+    actual = Decode.decodeWith bytes skipDecoder compact
     expected == actual
 
 expect
@@ -863,7 +989,7 @@ expect
     bytes = Str.toUtf8 "Bool.falseX"
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipDecoder rvn
+    actual = Decode.decodeWith bytes skipDecoder compact
     expected == actual
 
 expect
@@ -871,7 +997,7 @@ expect
     bytes = Str.toUtf8 "[-0.1]X"
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipDecoder rvn
+    actual = Decode.decodeWith bytes skipDecoder compact
     expected == actual
 
 expect
@@ -879,7 +1005,7 @@ expect
     bytes = Str.toUtf8 "{a:1}X"
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipDecoder rvn
+    actual = Decode.decodeWith bytes skipDecoder compact
     expected == actual
 
 expect
@@ -887,7 +1013,7 @@ expect
     bytes = Str.toUtf8 "(0,1)X"
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipDecoder rvn
+    actual = Decode.decodeWith bytes skipDecoder compact
     expected == actual
 
 # I'd like to use skipDecoder for the record-skipping logic as well, but run
@@ -991,98 +1117,98 @@ expect
     # Decodes an empty record
     bytes = Str.toUtf8 "{}X"
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 expect
     # Skips an empty record
     bytes = Str.toUtf8 "{}X"
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipRecord rvn
+    actual = Decode.decodeWith bytes skipRecord compact
     expected == actual
 
 expect
     # Decodes an empty record
     bytes = Str.toUtf8 "{ }X"
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 expect
     # Skips an empty record with space between
     bytes = Str.toUtf8 "{ }X"
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipRecord rvn
+    actual = Decode.decodeWith bytes skipRecord compact
     expected == actual
 
 expect
     # Decodes a record with some fields
     bytes = Str.toUtf8 "{a:1,b:2}X"
     expected = { result: Ok { a: 1, b: 2 }, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 expect
     # Skips a record with some fields
     bytes = Str.toUtf8 "{a:1,b:2}X"
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipRecord rvn
+    actual = Decode.decodeWith bytes skipRecord compact
     expected == actual
 
 expect
     # Skips whitespace around the record and elements
     bytes = Str.toUtf8 " { a : 1 , b : 2 , } X"
     expected = { result: Ok { a: 1, b: 2 }, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 expect
     # Skips records containing whitespace around the record and elements
     bytes = Str.toUtf8 " { a : 1 , b : 2 } X"
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipRecord rvn
+    actual = Decode.decodeWith bytes skipRecord compact
     expected == actual
 
 expect
     # Skips comment directly after key
     bytes = Str.toUtf8 "{a#hi\n : 1}X"
     expected = { result: Ok { a: 1 }, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 expect
     # Skips a record with a comment directly after key
     bytes = Str.toUtf8 "{a#hi\n : 1}X"
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipRecord rvn
+    actual = Decode.decodeWith bytes skipRecord compact
     expected == actual
 
 expect
     # Decodes a record with a trailing comma on the last field
     bytes = Str.toUtf8 "{a:1,}X"
     expected = { result: Ok { a: 1 }, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 expect
     # Skips a record with a trailing comma on the last field
     bytes = Str.toUtf8 "{a:1,}X"
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipRecord rvn
+    actual = Decode.decodeWith bytes skipRecord compact
     expected == actual
 
 expect
     # Skips fields not present in the expected type
     bytes = Str.toUtf8 "{a:1}X"
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 expect
     # Skips records with fields not present in the expected type
     bytes = Str.toUtf8 "{a:1}X"
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipRecord rvn
+    actual = Decode.decodeWith bytes skipRecord compact
     expected == actual
 
 decodeTuple :
@@ -1120,28 +1246,28 @@ expect
     # Decodes 2-tuple
     bytes = Str.toUtf8 "(1,2)X"
     expected = { result: Ok (1, 2), rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 expect
     # Decodes 3-tuple
     bytes = Str.toUtf8 "(1,2,3)X"
     expected = { result: Ok (1, 2, 3), rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 expect
     # Decodes tuple with trailing comma
     bytes = Str.toUtf8 "(1,2,)X"
     expected = { result: Ok (1, 2), rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 expect
     # Decodes tuple with whitespace surrounding it and its elements
     bytes = Str.toUtf8 " ( 1 , 2 , ) X"
     expected = { result: Ok (1, 2), rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 expect
@@ -1149,7 +1275,7 @@ expect
     bytes = Str.toUtf8 "(1)X"
     expected : DecodeResult (U8, U8)
     expected = { result: Err TooShort, rest: ['X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 expect
@@ -1157,7 +1283,7 @@ expect
     bytes = Str.toUtf8 "(1,2,3)X"
     expected : DecodeResult (U8, U8)
     expected = { result: Err TooShort, rest: ['3', ')', 'X'] }
-    actual = Decode.fromBytesPartial bytes rvn
+    actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
 skipWhitespace : List U8 -> List U8
@@ -1227,3 +1353,26 @@ toDecoder = \decodeFn ->
                     result: Ok val,
                     rest: (skipWhitespaceIndent decodeResult.rest).rest,
                 }
+
+upIndent : Rvn -> Rvn
+upIndent = \@Rvn config ->
+    @Rvn { config & indent: config.indent + 1 }
+
+appendIfCompact : List U8, Rvn, U8 -> List U8
+appendIfCompact = \bytes, @Rvn { format }, byte ->
+    when format is
+        Compact -> List.append bytes byte
+        Pretty -> bytes
+
+appendIfPretty : List U8, Rvn, U8 -> List U8
+appendIfPretty = \bytes, @Rvn { format }, byte ->
+    when format is
+        Compact -> bytes
+        Pretty -> List.append bytes byte
+
+appendIndent : List U8, Rvn -> List U8
+appendIndent = \bytes, @Rvn { format, indent } ->
+    when format is
+        Compact -> bytes
+        Pretty -> List.concat bytes (List.repeat ' ' (indent * 4))
+
