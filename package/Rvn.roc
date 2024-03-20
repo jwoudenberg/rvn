@@ -1461,3 +1461,28 @@ appendIndent = \bytes, @Rvn { format, indent } ->
 setInTag : Rvn, Bool -> Rvn
 setInTag = \@Rvn config, inTag ->
     @Rvn { config & inTag }
+
+expect
+    # Decode the README.md example (kind of, tag decoding not yet supported).
+    input =
+        """
+        {
+            language: "Roc",
+            tags: ["Fast", "Friendly", "Functional"],
+            color: 0x7c38f5, # supports hex digits, comments too!
+        }
+        """
+    expected = Ok {
+        language: "Roc",
+        tags: ["Fast", "Friendly", "Functional"],
+        color: 0x7c38f5,
+    }
+    actual = Decode.fromBytes (Str.toUtf8 input) compact
+    actual == expected
+
+expect
+    # Decode a deeply nested structure.
+    input = "{ tuple: (4, { key: [1,2,3] } ) }"
+    expected = Ok { tuple: (4, { key: [1, 2, 3] }) }
+    actual = Decode.fromBytes (Str.toUtf8 input) compact
+    actual == expected
