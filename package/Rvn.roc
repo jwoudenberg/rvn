@@ -11,7 +11,7 @@ interface Rvn
         },
     ]
 
-Rvn := { indent : U64, format : [Compact, Pretty], inTagParam : Bool }
+Rvn := { indent : U64, format : [Compact, Pretty], inTag : Bool }
     implements [
         EncoderFormatting {
             u8: encodeU8,
@@ -57,10 +57,10 @@ Rvn := { indent : U64, format : [Compact, Pretty], inTagParam : Bool }
     ]
 
 compact : Rvn
-compact = @Rvn { format: Compact, indent: 0, inTagParam: Bool.false }
+compact = @Rvn { format: Compact, indent: 0, inTag: Bool.false }
 
 pretty : Rvn
-pretty = @Rvn { format: Pretty, indent: 0, inTagParam: Bool.false }
+pretty = @Rvn { format: Pretty, indent: 0, inTag: Bool.false }
 
 numToBytes = \n ->
     n |> Num.toStr |> Str.toUtf8
@@ -220,7 +220,7 @@ encodeList = \list, encodeElem ->
             indented = upIndent fmt
             acc
             |> appendIndent indented
-            |> Encode.appendWith (encodeElem elem) indented
+            |> Encode.appendWith (encodeElem elem) (setInTag indented Bool.false)
             |> List.append ','
             |> appendIfPretty indented '\n'
 
@@ -270,7 +270,7 @@ encodeRecord = \fields ->
             |> List.concat (Str.toUtf8 key)
             |> List.concat [':']
             |> appendIfPretty indented ' '
-            |> Encode.appendWith value indented
+            |> Encode.appendWith value (setInTag indented Bool.false)
             |> List.concat [',']
             |> appendIfPretty indented '\n'
 
@@ -315,7 +315,7 @@ encodeTuple = \elems ->
             indented = upIndent fmt
             acc
             |> appendIndent indented
-            |> Encode.appendWith elem indented
+            |> Encode.appendWith elem (setInTag indented Bool.false)
             |> List.concat [',']
             |> appendIfPretty indented '\n'
 
@@ -349,23 +349,105 @@ expect
 encodeTag : Str, List (Encoder Rvn) -> Encoder Rvn
 encodeTag = \tag, attrs ->
     Encode.custom \bytes, fmt ->
+        (@Rvn { inTag }) = fmt
+        addParens = inTag && !(List.isEmpty attrs)
+
         addEncodedAttr = \acc, elem ->
-            indented = upIndent fmt
+            indented =
+                if addParens then
+                    upIndent (upIndent fmt)
+                else
+                    upIndent fmt
             acc
             |> appendIfPretty indented '\n'
             |> appendIndent indented
             |> appendIfCompact indented ' '
-            |> Encode.appendWith elem indented
+            |> Encode.appendWith elem (setInTag indented Bool.true)
 
-        bytes
-        |> List.concat (Str.toUtf8 tag)
-        |> \newBytes -> List.walk attrs newBytes addEncodedAttr
+        if addParens then
+            bytes
+            |> List.append '('
+            |> appendIfPretty (upIndent fmt) '\n'
+            |> appendIndent (upIndent fmt)
+            |> List.concat (Str.toUtf8 tag)
+            |> \newBytes -> List.walk attrs newBytes addEncodedAttr
+            |> appendIfPretty fmt '\n'
+            |> appendIndent fmt
+            |> List.append ')'
+        else
+            bytes
+            |> List.concat (Str.toUtf8 tag)
+            |> \newBytes -> List.walk attrs newBytes addEncodedAttr
 
 expect
     # Compact tag encoding
     tagged = Foo 1 2
     actual = Encode.toBytes tagged compact
     expected = Str.toUtf8 "Foo 1 2"
+    actual == expected
+
+expect
+    # Add parens in compact encoding when tag is nested in other tag
+    tagged = Foo (Bar 1) (Baz 2 3)
+    actual = Encode.toBytes tagged compact |> Str.fromUtf8
+    expected = Ok "Foo (Bar 1) (Baz 2 3)"
+    actual == expected
+
+expect
+    # Don't add parents if nested tag has no parameters
+    tagged = Foo Bar
+    actual = Encode.toBytes tagged compact |> Str.fromUtf8
+    expected = Ok "Foo Bar"
+    actual == expected
+
+expect
+    # Don't add parens for tag nested in list nested in tag
+    tagged = Foo [Bar]
+    actual = Encode.toBytes tagged compact |> Str.fromUtf8
+    expected = Ok "Foo [Bar,]"
+    actual == expected
+
+expect
+    # Don't add parens for tag nested in tuple nested in tag
+    tagged = Foo (Bar, 4)
+    actual = Encode.toBytes tagged compact |> Str.fromUtf8
+    expected = Ok "Foo (Bar,4,)"
+    actual == expected
+
+expect
+    # Don't add parens for tag nested in recored nested in tag
+    tagged = Foo { x: Bar }
+    actual = Encode.toBytes tagged compact |> Str.fromUtf8
+    expected = Ok "Foo {x:Bar,}"
+    actual == expected
+
+expect
+    # Add parens in pretty encoding when tag is nested in other tag
+    tagged =
+        Foo
+            (
+                Bar
+                    1
+            )
+            (
+                Baz
+                    2
+                    3
+            )
+    actual = Encode.toBytes tagged pretty |> Str.fromUtf8
+    expected = Ok
+        """
+        Foo
+            (
+                Bar
+                    1
+            )
+            (
+                Baz
+                    2
+                    3
+            )
+        """
     actual == expected
 
 expect
@@ -1376,3 +1458,6 @@ appendIndent = \bytes, @Rvn { format, indent } ->
         Compact -> bytes
         Pretty -> List.concat bytes (List.repeat ' ' (indent * 4))
 
+setInTag : Rvn, Bool -> Rvn
+setInTag = \@Rvn config, inTag ->
+    @Rvn { config & inTag }
