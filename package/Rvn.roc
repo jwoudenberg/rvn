@@ -1,8 +1,40 @@
+## RVN is a serialization format like JSON, YAML, or XML, but made to look
+## like Roc code. This means you can use records, lists, and even tags in your
+## serialized data.
+##
+## This is an example of encoding the list `[1,2]` to compact RVN:
+##
+##     expect
+##         actual = Encode.toBytes [1,2] Rvn.compact
+##         expected = ['[', '1', ',', '2', ',', ']' ]
+##         actual == expected
+##
+##
+## This is an example of encoding the list `[1,2]` to prettily-formatted RVN:
+##
+##     expect
+##         actual = Encode.toBytes [1,2] Rvn.pretty
+##         expected = Str.toUtf8
+##             """
+##             [
+##                 1,
+##                 2,
+##             ]
+##             """
+##         actual == expected
+##
+##
+## This is an example of decoding some RVN into a Roc value:
+##
+##     expect
+##         actual = Decode.fromBytes ['2', '3'] Rvn.compact
+##         expected = Ok 23
+##         actual == expected
 interface Rvn
     exposes [
-        Rvn,
         compact,
         pretty,
+        Rvn,
     ]
     imports [
         Encode.{
@@ -11,6 +43,8 @@ interface Rvn
         },
     ]
 
+## A type with the `EncoderFormatting` and `DecoderFormatting` abilities.
+## You likely don't need this!
 Rvn := { indent : U64, format : [Compact, Pretty], inTag : Bool }
     implements [
         EncoderFormatting {
@@ -56,11 +90,28 @@ Rvn := { indent : U64, format : [Compact, Pretty], inTag : Bool }
         },
     ]
 
+## Use for encoding Roc values to RVN, or decoding RVN bytes into Roc values.
+##
+## The encoded RVN will be formatted with minimal whitespace.
 compact : Rvn
 compact = @Rvn { format: Compact, indent: 0, inTag: Bool.false }
 
+## Use for encoding Roc values to RVN, or decoding RVN bytes into Roc values.
+##
+## The encoded RVN will be formatted similarly to the output of `roc format`.
 pretty : Rvn
 pretty = @Rvn { format: Pretty, indent: 0, inTag: Bool.false }
+
+expect
+    actual = Encode.toBytes [1, 2] Rvn.pretty
+    expected = Str.toUtf8
+        """
+        [
+            1,
+            2,
+        ]
+        """
+    actual == expected
 
 numToBytes = \n ->
     n |> Num.toStr |> Str.toUtf8
