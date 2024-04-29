@@ -1186,7 +1186,7 @@ skipRecord =
 decodeRecord :
     state,
     (state, Str -> [Keep (Decoder state Rvn), Skip]),
-    (state -> Result val DecodeError)
+    (state, Rvn -> Result val DecodeError)
     -> Decoder val Rvn
 decodeRecord = \initialState, stepField, finalizer ->
     toDecoder \bytes, fmt, _ ->
@@ -1230,7 +1230,7 @@ decodeRecord = \initialState, stepField, finalizer ->
                     {
                         result: result
                         |> Result.withDefault state
-                        |> finalizer,
+                        |> finalizer fmt,
                         rest,
                     }
 
