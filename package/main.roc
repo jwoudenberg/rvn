@@ -1,3 +1,1 @@
-package "rvn"
-    exposes [Rvn]
-    packages {}
+package [Rvn] {}

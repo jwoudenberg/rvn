@@ -30,18 +30,11 @@
 ##         actual = Decode.fromBytes ['2', '3'] Rvn.compact
 ##         expected = Ok 23
 ##         actual == expected
-interface Rvn
-    exposes [
-        compact,
-        pretty,
-        Rvn,
-    ]
-    imports [
-        Encode.{
-            Encoder,
-            EncoderFormatting,
-        },
-    ]
+module [
+    compact,
+    pretty,
+    Rvn,
+]
 
 ## A type with the `EncoderFormatting` and `DecoderFormatting` abilities.
 ## You likely don't need this!
