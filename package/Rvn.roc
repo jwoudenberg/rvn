@@ -716,7 +716,7 @@ decodeFloat = \bytes, fromStr ->
 
     countFractionalDigits = \offset ->
         when List.dropFirst bytes offset is
-            ['.', .. as _digits] -> countDigits (1 + offset)
+            ['.', ..] -> countDigits (1 + offset)
             _ -> offset
 
     len =
