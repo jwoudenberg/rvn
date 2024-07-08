@@ -8,8 +8,6 @@ roc='./roc_nightly/roc'
 
 src_dir='./package'
 
-# test-stub.roc
-
 # check and test package
 $roc check $src_dir/main.roc
 $roc test $src_dir/main.roc --linker=legacy
