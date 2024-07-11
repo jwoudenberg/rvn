@@ -1,3 +1,3 @@
 package [Rvn] {
-    unicode: "https://github.com/DilsonHiga/unicode/releases/download/0.1.0/NSJvyRQWvyOByeBMkUk3DIBur_NRIAXvMrng8yDEnOg.tar.br",
+    unicode: "https://github.com/roc-lang/unicode/releases/download/0.1.1/-FQDoegpSfMS-a7B0noOnZQs3-A2aq9RSOR5VVLMePg.tar.br",
 }
