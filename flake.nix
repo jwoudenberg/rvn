@@ -4,7 +4,6 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     roc.url = "github:roc-lang/roc";
-    roc.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = { self, nixpkgs, roc }: {
