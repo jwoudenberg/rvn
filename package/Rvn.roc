@@ -541,7 +541,7 @@ expect
     actual == expected
 
 decodeUtf8Bytes = \bytes, fromStr, len ->
-    { before, others } = List.split bytes len
+    { before, others } = List.splitAt bytes len
     result =
         before
         |> Str.fromUtf8
@@ -1193,7 +1193,7 @@ decodeRecord = \initialState, stepField, finalizer ->
                             ' ' | '\t' | '\n' | '#' | ':' -> Break count
                             _ -> Continue (count + 1)
                     )
-            { before, others } = List.split remaining keyLen
+            { before, others } = List.splitAt remaining keyLen
             when skipWhitespace others is
                 [':', .. as rest] ->
                     { result: Str.fromUtf8 before, rest }
