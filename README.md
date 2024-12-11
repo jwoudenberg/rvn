@@ -1,9 +1,9 @@
 # .rvn (Raven)
 
-RVN is a serialization format based of [Roc].
-Any Roc value is valid RVN.
+Raven is to [Roc] as JSON is to JavaScript.
+Any Roc value that does not contain functions is valid Raven.
 
-This means you can serialize to and from files with contents like this:
+This means you can serialize to and from data like this:
 
 ```roc
 {
