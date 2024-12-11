@@ -36,6 +36,8 @@ module [
     Rvn,
 ]
 
+import unicode.CodePoint
+
 ## A type with the `EncoderFormatting` and `DecoderFormatting` abilities.
 ## You likely don't need this!
 Rvn := { indent : U64, format : [Compact, Pretty], inTag : Bool }
@@ -549,12 +551,22 @@ decodeUtf8Bytes = \bytes, fromStr, len ->
         |> Result.mapErr (\_ -> TooShort)
     { result, rest: others }
 
+decodeInt : List U8, (Str -> Result intValue _) -> _
 decodeInt = \bytes, fromStr ->
     countUntil = \list, pred ->
         List.walkUntil
             list
             0
             (\count, elem -> if pred elem then Continue (count + 1) else Break count)
+
+    ## This function converts a generic Int into
+    ## the return type of "fromStr"
+    convertInt : Int* -> Result intValue [TooShort]
+    convertInt = \num ->
+        num
+        |> Num.toStr
+        |> fromStr
+        |> Result.mapErr \_ -> TooShort
 
     when bytes is
         ['-', '0', 'b', .. as digits] ->
@@ -571,6 +583,47 @@ decodeInt = \bytes, fromStr ->
 
         ['-', .. as digits] ->
             decodeUtf8Bytes bytes fromStr (1 + countUntil digits isDecimalDigit)
+
+        # Escaped single quoted char like '\n'
+        ['\'', '\\', char, '\'', ..] ->
+            intValue =
+                when char is
+                    'n' -> Ok '\n'
+                    'r' -> Ok '\r'
+                    't' -> Ok '\t'
+                    '\\' -> Ok '\\'
+                    '\'' -> Ok '\''
+                    _ -> Err TooShort
+            result =
+                intValue
+                |> Result.try convertInt
+            { result, rest: List.dropFirst bytes 4 }
+
+        # Unescaped single quoted char like 'x'
+        ['\'', char, '\'', ..] ->
+            result = convertInt char
+            { result, rest: List.dropFirst bytes 3 }
+
+        # Single quoted unicode char like '😀'
+        ['\'', .. as rest] ->
+            partialResult =
+                rest
+                |> CodePoint.parsePartialUtf8
+            when partialResult is
+                Ok { bytesParsed, codePoint } # The unicode parsed succeeded and...
+                    if List.get rest bytesParsed == Ok '\'' -> # ...the following character closed the single quote
+                    result =
+                        codePoint
+                        |> CodePoint.toU32
+                        |> convertInt
+
+                    { result, rest: List.dropFirst rest (bytesParsed + 1) }
+
+                _ ->
+                    {
+                        result: Err TooShort,
+                        rest,
+                    }
 
         digits ->
             decodeUtf8Bytes bytes fromStr (countUntil digits isDecimalDigit)
@@ -609,6 +662,20 @@ expect
     # Parse hex numbers
     bytes = Str.toUtf8 "0x1aX"
     expected = { result: Ok (Num.toU8 26), rest: ['X'] }
+    actual = Decode.fromBytesPartial bytes compact
+    actual == expected
+
+expect
+    # Parse single quote char
+    bytes = Str.toUtf8 "'a'X"
+    expected = { result: Ok (Num.toU8 'a'), rest: ['X'] }
+    actual = Decode.fromBytesPartial bytes compact
+    actual == expected
+
+expect
+    # Parse single quote char with an escaped char
+    bytes = Str.toUtf8 "'\\n'X"
+    expected = { result: Ok (Num.toU8 '\n'), rest: ['X'] }
     actual = Decode.fromBytesPartial bytes compact
     actual == expected
 
@@ -682,6 +749,13 @@ expect
     # Ignore surrounding whitespace
     bytes = Str.toUtf8 " 2 X"
     expected = { result: Ok (Num.toI8 2), rest: ['X'] }
+    actual = Decode.fromBytesPartial bytes compact
+    actual == expected
+
+expect
+    # Parse single quote unicode grapheme
+    bytes = Str.toUtf8 "'😀'X"
+    expected = { result: Ok (Num.toU32 '😀'), rest: ['X'] }
     actual = Decode.fromBytesPartial bytes compact
     actual == expected
 
