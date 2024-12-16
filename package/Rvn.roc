@@ -1,3 +1,13 @@
+# This module is vendored from here:
+# https://github.com/jwoudenberg/rvn/blob/main/package/Rvn.roc
+#
+# I haven't been able to pull it in as a package dependency (yet).
+#
+#
+#
+#
+#
+#
 ## RVN is a serialization format like JSON, YAML, or XML, but made to look
 ## like Roc code. This means you can use records, lists, and even tags in your
 ## serialized data.
@@ -38,48 +48,48 @@ module [
 
 ## A type with the `EncoderFormatting` and `DecoderFormatting` abilities.
 ## You likely don't need this!
-Rvn := { indent : U64, format : [Compact, Pretty], inTag : Bool }
+Rvn := { indent : U64, format : [Compact, Pretty], in_tag : Bool }
     implements [
         EncoderFormatting {
-            u8: encodeU8,
-            u16: encodeU16,
-            u32: encodeU32,
-            u64: encodeU64,
-            u128: encodeU128,
-            i8: encodeI8,
-            i16: encodeI16,
-            i32: encodeI32,
-            i64: encodeI64,
-            i128: encodeI128,
-            f32: encodeF32,
-            f64: encodeF64,
-            dec: encodeDec,
-            bool: encodeBool,
-            string: encodeString,
-            list: encodeList,
-            record: encodeRecord,
-            tuple: encodeTuple,
-            tag: encodeTag,
+            u8: encode_u8,
+            u16: encode_u16,
+            u32: encode_u32,
+            u64: encode_u64,
+            u128: encode_u128,
+            i8: encode_i8,
+            i16: encode_i16,
+            i32: encode_i32,
+            i64: encode_i64,
+            i128: encode_i128,
+            f32: encode_f32,
+            f64: encode_f64,
+            dec: encode_dec,
+            bool: encode_bool,
+            string: encode_string,
+            list: encode_list,
+            record: encode_record,
+            tuple: encode_tuple,
+            tag: encode_tag,
         },
         DecoderFormatting {
-            u8: decodeU8,
-            u16: decodeU16,
-            u32: decodeU32,
-            u64: decodeU64,
-            u128: decodeU128,
-            i8: decodeI8,
-            i16: decodeI16,
-            i32: decodeI32,
-            i64: decodeI64,
-            i128: decodeI128,
-            f32: decodeF32,
-            f64: decodeF64,
-            dec: decodeDec,
-            bool: decodeBool,
-            string: decodeString,
-            list: decodeList,
-            record: decodeRecord,
-            tuple: decodeTuple,
+            u8: decode_u8,
+            u16: decode_u16,
+            u32: decode_u32,
+            u64: decode_u64,
+            u128: decode_u128,
+            i8: decode_i8,
+            i16: decode_i16,
+            i32: decode_i32,
+            i64: decode_i64,
+            i128: decode_i128,
+            f32: decode_f32,
+            f64: decode_f64,
+            dec: decode_dec,
+            bool: decode_bool,
+            string: decode_string,
+            list: decode_list,
+            record: decode_record,
+            tuple: decode_tuple,
         },
     ]
 
@@ -87,13 +97,13 @@ Rvn := { indent : U64, format : [Compact, Pretty], inTag : Bool }
 ##
 ## The encoded RVN will be formatted with minimal whitespace.
 compact : Rvn
-compact = @Rvn { format: Compact, indent: 0, inTag: Bool.false }
+compact = @Rvn { format: Compact, indent: 0, in_tag: Bool.false }
 
 ## Use for encoding Roc values to RVN, or decoding RVN bytes into Roc values.
 ##
 ## The encoded RVN will be formatted similarly to the output of `roc format`.
 pretty : Rvn
-pretty = @Rvn { format: Pretty, indent: 0, inTag: Bool.false }
+pretty = @Rvn { format: Pretty, indent: 0, in_tag: Bool.false }
 
 expect
     actual = Encode.toBytes [1, 2] Rvn.pretty
@@ -106,62 +116,62 @@ expect
         """
     actual == expected
 
-numToBytes = \n ->
+num_to_bytes = \n ->
     n |> Num.toStr |> Str.toUtf8
 
-encodeU8 = \n ->
+encode_u8 = \n ->
     Encode.custom \bytes, @Rvn _ ->
-        List.concat bytes (numToBytes n)
+        List.concat bytes (num_to_bytes n)
 
-encodeU16 = \n ->
+encode_u16 = \n ->
     Encode.custom \bytes, @Rvn _ ->
-        List.concat bytes (numToBytes n)
+        List.concat bytes (num_to_bytes n)
 
-encodeU32 = \n ->
+encode_u32 = \n ->
     Encode.custom \bytes, @Rvn _ ->
-        List.concat bytes (numToBytes n)
+        List.concat bytes (num_to_bytes n)
 
-encodeU64 = \n ->
+encode_u64 = \n ->
     Encode.custom \bytes, @Rvn _ ->
-        List.concat bytes (numToBytes n)
+        List.concat bytes (num_to_bytes n)
 
-encodeU128 = \n ->
+encode_u128 = \n ->
     Encode.custom \bytes, @Rvn _ ->
-        List.concat bytes (numToBytes n)
+        List.concat bytes (num_to_bytes n)
 
-encodeI8 = \n ->
+encode_i8 = \n ->
     Encode.custom \bytes, @Rvn _ ->
-        List.concat bytes (numToBytes n)
+        List.concat bytes (num_to_bytes n)
 
-encodeI16 = \n ->
+encode_i16 = \n ->
     Encode.custom \bytes, @Rvn _ ->
-        List.concat bytes (numToBytes n)
+        List.concat bytes (num_to_bytes n)
 
-encodeI32 = \n ->
+encode_i32 = \n ->
     Encode.custom \bytes, @Rvn _ ->
-        List.concat bytes (numToBytes n)
+        List.concat bytes (num_to_bytes n)
 
-encodeI64 = \n ->
+encode_i64 = \n ->
     Encode.custom \bytes, @Rvn _ ->
-        List.concat bytes (numToBytes n)
+        List.concat bytes (num_to_bytes n)
 
-encodeI128 = \n ->
+encode_i128 = \n ->
     Encode.custom \bytes, @Rvn _ ->
-        List.concat bytes (numToBytes n)
+        List.concat bytes (num_to_bytes n)
 
-encodeF32 = \n ->
+encode_f32 = \n ->
     Encode.custom \bytes, @Rvn _ ->
-        List.concat bytes (numToBytes n)
+        List.concat bytes (num_to_bytes n)
 
-encodeF64 = \n ->
+encode_f64 = \n ->
     Encode.custom \bytes, @Rvn _ ->
-        List.concat bytes (numToBytes n)
+        List.concat bytes (num_to_bytes n)
 
-encodeDec = \n ->
+encode_dec = \n ->
     Encode.custom \bytes, @Rvn _ ->
-        List.concat bytes (numToBytes n)
+        List.concat bytes (num_to_bytes n)
 
-encodeBool = \byte ->
+encode_bool = \byte ->
     Encode.custom \bytes, @Rvn _ ->
         if byte then
             List.concat bytes (Str.toUtf8 "Bool.true")
@@ -180,18 +190,18 @@ expect
     expected = ['B', 'o', 'o', 'l', '.', 'f', 'a', 'l', 's', 'e']
     actual == expected
 
-encodeString = \str ->
+encode_string = \str ->
     Encode.custom \bytes, @Rvn _ ->
-        strBytes = Str.toUtf8 str
+        str_bytes = Str.toUtf8 str
 
-        encodeSliceWithoutEscaping = \{ start, len, acc } -> {
+        encode_slice_without_escaping = \{ start, len, acc } -> {
             start: start + len,
             len: 0,
-            acc: List.concat acc (List.sublist strBytes { start, len }),
+            acc: List.concat acc (List.sublist str_bytes { start, len }),
         }
 
         escape = \state, char ->
-            { start, acc } = encodeSliceWithoutEscaping state
+            { start, acc } = encode_slice_without_escaping state
 
             {
                 start: start + 1,
@@ -199,7 +209,7 @@ encodeString = \str ->
                 acc: List.concat acc ['\\', char],
             }
 
-        escapeAndAppend = \state, byte ->
+        escape_and_append = \state, byte ->
             when byte is
                 '\n' -> escape state 'n'
                 '\t' -> escape state 't'
@@ -208,17 +218,17 @@ encodeString = \str ->
                 '$' -> escape state '$'
                 _ -> { start: state.start, len: state.len + 1, acc: state.acc }
 
-        encodeAndAppend = \acc ->
+        encode_and_append = \acc ->
             List.walk
-                strBytes
+                str_bytes
                 { start: 0, len: 0, acc }
-                escapeAndAppend
-            |> encodeSliceWithoutEscaping
+                escape_and_append
+            |> encode_slice_without_escaping
             |> .acc
 
         bytes
         |> List.concat ['"']
-        |> encodeAndAppend
+        |> encode_and_append
         |> List.concat ['"']
 
 expect
@@ -257,22 +267,22 @@ expect
     expected = ['"', 'a', '\\', '$', 'c', '"']
     actual == expected
 
-encodeList : List elem, (elem -> Encoder Rvn) -> Encoder Rvn
-encodeList = \list, encodeElem ->
+encode_list : List elem, (elem -> Encoder Rvn) -> Encoder Rvn
+encode_list = \list, encode_elem ->
     Encode.custom \bytes, fmt ->
-        addEncodedElem = \acc, elem ->
-            indented = upIndent fmt
+        add_encoded_elem = \acc, elem ->
+            indented = up_indent fmt
             acc
-            |> appendIndent indented
-            |> Encode.appendWith (encodeElem elem) (setInTag indented Bool.false)
+            |> append_indent indented
+            |> Encode.appendWith (encode_elem elem) (set_in_tag indented Bool.false)
             |> List.append ','
-            |> appendIfPretty indented '\n'
+            |> append_if_pretty indented '\n'
 
         bytes
         |> List.concat ['[']
-        |> appendIfPretty fmt '\n'
-        |> \newBytes -> List.walk list newBytes addEncodedElem
-        |> appendIndent fmt
+        |> append_if_pretty fmt '\n'
+        |> \new_bytes -> List.walk list new_bytes add_encoded_elem
+        |> append_indent fmt
         |> List.concat [']']
 
 expect
@@ -304,25 +314,25 @@ expect
         """
     actual == expected
 
-encodeRecord : List { key : Str, value : Encoder Rvn } -> Encoder Rvn
-encodeRecord = \fields ->
+encode_record : List { key : Str, value : Encoder Rvn } -> Encoder Rvn
+encode_record = \fields ->
     Encode.custom \bytes, fmt ->
-        addEncodedField = \acc, { key, value } ->
-            indented = upIndent fmt
+        add_encoded_field = \acc, { key, value } ->
+            indented = up_indent fmt
             acc
-            |> appendIndent indented
+            |> append_indent indented
             |> List.concat (Str.toUtf8 key)
             |> List.concat [':']
-            |> appendIfPretty indented ' '
-            |> Encode.appendWith value (setInTag indented Bool.false)
+            |> append_if_pretty indented ' '
+            |> Encode.appendWith value (set_in_tag indented Bool.false)
             |> List.concat [',']
-            |> appendIfPretty indented '\n'
+            |> append_if_pretty indented '\n'
 
         bytes
         |> List.concat ['{']
-        |> appendIfPretty fmt '\n'
-        |> \newBytes -> List.walk fields newBytes addEncodedField
-        |> appendIndent fmt
+        |> append_if_pretty fmt '\n'
+        |> \new_bytes -> List.walk fields new_bytes add_encoded_field
+        |> append_indent fmt
         |> List.concat ['}']
 
 expect
@@ -352,22 +362,22 @@ expect
         """
     actual == expected
 
-encodeTuple : List (Encoder Rvn) -> Encoder Rvn
-encodeTuple = \elems ->
+encode_tuple : List (Encoder Rvn) -> Encoder Rvn
+encode_tuple = \elems ->
     Encode.custom \bytes, fmt ->
-        addEncodedElem = \acc, elem ->
-            indented = upIndent fmt
+        add_encoded_elem = \acc, elem ->
+            indented = up_indent fmt
             acc
-            |> appendIndent indented
-            |> Encode.appendWith elem (setInTag indented Bool.false)
+            |> append_indent indented
+            |> Encode.appendWith elem (set_in_tag indented Bool.false)
             |> List.concat [',']
-            |> appendIfPretty indented '\n'
+            |> append_if_pretty indented '\n'
 
         bytes
         |> List.concat ['(']
-        |> appendIfPretty fmt '\n'
-        |> \newBytes -> List.walk elems newBytes addEncodedElem
-        |> appendIndent fmt
+        |> append_if_pretty fmt '\n'
+        |> \new_bytes -> List.walk elems new_bytes add_encoded_elem
+        |> append_indent fmt
         |> List.concat [')']
 
 expect
@@ -390,38 +400,38 @@ expect
         """
     actual == expected
 
-encodeTag : Str, List (Encoder Rvn) -> Encoder Rvn
-encodeTag = \tag, attrs ->
+encode_tag : Str, List (Encoder Rvn) -> Encoder Rvn
+encode_tag = \tag, attrs ->
     Encode.custom \bytes, fmt ->
-        (@Rvn { inTag }) = fmt
-        addParens = inTag && !(List.isEmpty attrs)
+        (@Rvn { in_tag }) = fmt
+        add_parens = in_tag && !(List.isEmpty attrs)
 
-        addEncodedAttr = \acc, elem ->
+        add_encoded_attr = \acc, elem ->
             indented =
-                if addParens then
-                    upIndent (upIndent fmt)
+                if add_parens then
+                    up_indent (up_indent fmt)
                 else
-                    upIndent fmt
+                    up_indent fmt
             acc
-            |> appendIfPretty indented '\n'
-            |> appendIndent indented
-            |> appendIfCompact indented ' '
-            |> Encode.appendWith elem (setInTag indented Bool.true)
+            |> append_if_pretty indented '\n'
+            |> append_indent indented
+            |> append_if_compact indented ' '
+            |> Encode.appendWith elem (set_in_tag indented Bool.true)
 
-        if addParens then
+        if add_parens then
             bytes
             |> List.append '('
-            |> appendIfPretty (upIndent fmt) '\n'
-            |> appendIndent (upIndent fmt)
+            |> append_if_pretty (up_indent fmt) '\n'
+            |> append_indent (up_indent fmt)
             |> List.concat (Str.toUtf8 tag)
-            |> \newBytes -> List.walk attrs newBytes addEncodedAttr
-            |> appendIfPretty fmt '\n'
-            |> appendIndent fmt
+            |> \new_bytes -> List.walk attrs new_bytes add_encoded_attr
+            |> append_if_pretty fmt '\n'
+            |> append_indent fmt
             |> List.append ')'
         else
             bytes
             |> List.concat (Str.toUtf8 tag)
-            |> \newBytes -> List.walk attrs newBytes addEncodedAttr
+            |> \new_bytes -> List.walk attrs new_bytes add_encoded_attr
 
 expect
     # Compact tag encoding
@@ -540,17 +550,17 @@ expect
             """
     actual == expected
 
-decodeUtf8Bytes = \bytes, fromStr, len ->
+decode_utf8_bytes = \bytes, from_str, len ->
     { before, others } = List.splitAt bytes len
     result =
         before
         |> Str.fromUtf8
-        |> Result.try fromStr
+        |> Result.try from_str
         |> Result.mapErr (\_ -> TooShort)
     { result, rest: others }
 
-decodeInt = \bytes, fromStr ->
-    countUntil = \list, pred ->
+decode_int = \bytes, from_str ->
+    count_until = \list, pred ->
         List.walkUntil
             list
             0
@@ -558,38 +568,38 @@ decodeInt = \bytes, fromStr ->
 
     when bytes is
         ['-', '0', 'b', .. as digits] ->
-            decodeUtf8Bytes bytes fromStr (3 + countUntil digits isBinaryDigit)
+            decode_utf8_bytes bytes from_str (3 + count_until digits is_binary_digit)
 
         ['0', 'b', .. as digits] ->
-            decodeUtf8Bytes bytes fromStr (2 + countUntil digits isBinaryDigit)
+            decode_utf8_bytes bytes from_str (2 + count_until digits is_binary_digit)
 
         ['-', '0', 'x', .. as digits] ->
-            decodeUtf8Bytes bytes fromStr (3 + countUntil digits isHexDigit)
+            decode_utf8_bytes bytes from_str (3 + count_until digits is_hex_digit)
 
         ['0', 'x', .. as digits] ->
-            decodeUtf8Bytes bytes fromStr (2 + countUntil digits isHexDigit)
+            decode_utf8_bytes bytes from_str (2 + count_until digits is_hex_digit)
 
         ['-', .. as digits] ->
-            decodeUtf8Bytes bytes fromStr (1 + countUntil digits isDecimalDigit)
+            decode_utf8_bytes bytes from_str (1 + count_until digits is_decimal_digit)
 
         digits ->
-            decodeUtf8Bytes bytes fromStr (countUntil digits isDecimalDigit)
+            decode_utf8_bytes bytes from_str (count_until digits is_decimal_digit)
 
-isBinaryDigit : U8 -> Bool
-isBinaryDigit = \byte -> byte == '_' || byte == '0' || byte == '1'
+is_binary_digit : U8 -> Bool
+is_binary_digit = \byte -> byte == '_' || byte == '0' || byte == '1'
 
-isDecimalDigit : U8 -> Bool
-isDecimalDigit = \byte -> byte == '_' || (byte >= '0' && byte <= '9')
+is_decimal_digit : U8 -> Bool
+is_decimal_digit = \byte -> byte == '_' || (byte >= '0' && byte <= '9')
 
-isHexDigit : U8 -> Bool
-isHexDigit = \byte ->
+is_hex_digit : U8 -> Bool
+is_hex_digit = \byte ->
     (byte == '_')
     || (byte >= '0' && byte <= '9')
     || (byte >= 'a' && byte <= 'f')
     || (byte >= 'A' && byte <= 'F')
 
-decodeU8 : Decoder U8 Rvn
-decodeU8 = toDecoder \bytes, @Rvn _, _ -> decodeInt bytes Str.toU8
+decode_u8 : Decoder U8 Rvn
+decode_u8 = to_decoder \bytes, @Rvn _, _ -> decode_int bytes Str.toU8
 
 expect
     # Parse decimal numbers
@@ -635,20 +645,20 @@ expect
     actual = Decode.fromBytesPartial bytes compact
     actual == expected
 
-decodeU16 : Decoder U16 Rvn
-decodeU16 = toDecoder \bytes, @Rvn _, _ -> decodeInt bytes Str.toU16
+decode_u16 : Decoder U16 Rvn
+decode_u16 = to_decoder \bytes, @Rvn _, _ -> decode_int bytes Str.toU16
 
-decodeU32 : Decoder U32 Rvn
-decodeU32 = toDecoder \bytes, @Rvn _, _ -> decodeInt bytes Str.toU32
+decode_u32 : Decoder U32 Rvn
+decode_u32 = to_decoder \bytes, @Rvn _, _ -> decode_int bytes Str.toU32
 
-decodeU64 : Decoder U64 Rvn
-decodeU64 = toDecoder \bytes, @Rvn _, _ -> decodeInt bytes Str.toU64
+decode_u64 : Decoder U64 Rvn
+decode_u64 = to_decoder \bytes, @Rvn _, _ -> decode_int bytes Str.toU64
 
-decodeU128 : Decoder U128 Rvn
-decodeU128 = toDecoder \bytes, @Rvn _, _ -> decodeInt bytes Str.toU128
+decode_u128 : Decoder U128 Rvn
+decode_u128 = to_decoder \bytes, @Rvn _, _ -> decode_int bytes Str.toU128
 
-decodeI8 : Decoder I8 Rvn
-decodeI8 = toDecoder \bytes, @Rvn _, _ -> decodeInt bytes Str.toI8
+decode_i8 : Decoder I8 Rvn
+decode_i8 = to_decoder \bytes, @Rvn _, _ -> decode_int bytes Str.toI8
 
 expect
     # Parse positive numbers
@@ -685,55 +695,55 @@ expect
     actual = Decode.fromBytesPartial bytes compact
     actual == expected
 
-decodeI16 : Decoder I16 Rvn
-decodeI16 = toDecoder \bytes, @Rvn _, _ -> decodeInt bytes Str.toI16
+decode_i16 : Decoder I16 Rvn
+decode_i16 = to_decoder \bytes, @Rvn _, _ -> decode_int bytes Str.toI16
 
-decodeI32 : Decoder I32 Rvn
-decodeI32 = toDecoder \bytes, @Rvn _, _ -> decodeInt bytes Str.toI32
+decode_i32 : Decoder I32 Rvn
+decode_i32 = to_decoder \bytes, @Rvn _, _ -> decode_int bytes Str.toI32
 
-decodeI64 : Decoder I64 Rvn
-decodeI64 = toDecoder \bytes, @Rvn _, _ -> decodeInt bytes Str.toI64
+decode_i64 : Decoder I64 Rvn
+decode_i64 = to_decoder \bytes, @Rvn _, _ -> decode_int bytes Str.toI64
 
-decodeI128 : Decoder I128 Rvn
-decodeI128 = toDecoder \bytes, @Rvn _, _ -> decodeInt bytes Str.toI128
+decode_i128 : Decoder I128 Rvn
+decode_i128 = to_decoder \bytes, @Rvn _, _ -> decode_int bytes Str.toI128
 
-decodeFloat = \bytes, fromStr ->
-    countMinusSign =
+decode_float = \bytes, from_str ->
+    count_minus_sign =
         when bytes is
             ['-', ..] -> 1
             _ -> 0
 
-    countDigits = \startOffset ->
+    count_digits = \start_offset ->
         List.walkUntil
-            (List.dropFirst bytes startOffset)
-            startOffset
+            (List.dropFirst bytes start_offset)
+            start_offset
             (\offset, byte ->
-                if isDecimalDigit byte then
+                if is_decimal_digit byte then
                     Continue (offset + 1)
                 else
                     Break offset
             )
 
-    countFractionalDigits = \offset ->
+    count_fractional_digits = \offset ->
         when List.dropFirst bytes offset is
-            ['.', ..] -> countDigits (1 + offset)
+            ['.', ..] -> count_digits (1 + offset)
             _ -> offset
 
     len =
-        countMinusSign
-        |> countDigits
-        |> countFractionalDigits
+        count_minus_sign
+        |> count_digits
+        |> count_fractional_digits
 
-    decodeUtf8Bytes bytes fromStr len
+    decode_utf8_bytes bytes from_str len
 
-decodeF32 : Decoder F32 Rvn
-decodeF32 = toDecoder \bytes, @Rvn _, _ -> decodeFloat bytes Str.toF32
+decode_f32 : Decoder F32 Rvn
+decode_f32 = to_decoder \bytes, @Rvn _, _ -> decode_float bytes Str.toF32
 
-decodeF64 : Decoder F64 Rvn
-decodeF64 = toDecoder \bytes, @Rvn _, _ -> decodeFloat bytes Str.toF64
+decode_f64 : Decoder F64 Rvn
+decode_f64 = to_decoder \bytes, @Rvn _, _ -> decode_float bytes Str.toF64
 
-decodeDec : Decoder Dec Rvn
-decodeDec = toDecoder \bytes, @Rvn _, _ -> decodeFloat bytes Str.toDec
+decode_dec : Decoder Dec Rvn
+decode_dec = to_decoder \bytes, @Rvn _, _ -> decode_float bytes Str.toDec
 
 expect
     # Parse positive numbers
@@ -779,9 +789,9 @@ expect
     actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
-decodeBool : Decoder Bool Rvn
-decodeBool =
-    toDecoder \bytes, @Rvn _, _ ->
+decode_bool : Decoder Bool Rvn
+decode_bool =
+    to_decoder \bytes, @Rvn _, _ ->
         when bytes is
             ['B', 'o', 'o', 'l', '.', 't', 'r', 'u', 'e', .. as rest] ->
                 { result: Ok Bool.true, rest }
@@ -819,15 +829,15 @@ expect
     actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
-decodeString : Decoder Str Rvn
-decodeString = toDecoder \bytes, @Rvn _, _ ->
-    appendRange = \{ acc, start, len } -> {
+decode_string : Decoder Str Rvn
+decode_string = to_decoder \bytes, @Rvn _, _ ->
+    append_range = \{ acc, start, len } -> {
         acc: List.concat acc (List.sublist bytes { start, len }),
         start: start + len,
         len: 0,
     }
 
-    appendByte = \{ acc, start, len }, byte -> {
+    append_byte = \{ acc, start, len }, byte -> {
         acc: List.concat acc [byte],
         start,
         len,
@@ -837,32 +847,32 @@ decodeString = toDecoder \bytes, @Rvn _, _ ->
         when remaining is
             ['\\', 'n', .. as rest] ->
                 state
-                |> appendRange
-                |> appendByte '\n'
+                |> append_range
+                |> append_byte '\n'
                 |> step rest
 
             ['\\', 't', .. as rest] ->
                 state
-                |> appendRange
-                |> appendByte '\t'
+                |> append_range
+                |> append_byte '\t'
                 |> step rest
 
             ['\\', '"', .. as rest] ->
                 state
-                |> appendRange
-                |> appendByte '"'
+                |> append_range
+                |> append_byte '"'
                 |> step rest
 
             ['\\', '\\', .. as rest] ->
                 state
-                |> appendRange
-                |> appendByte '\\'
+                |> append_range
+                |> append_byte '\\'
                 |> step rest
 
             ['\\', '$', .. as rest] ->
                 state
-                |> appendRange
-                |> appendByte '$'
+                |> append_range
+                |> append_byte '$'
                 |> step rest
 
             ['\\', 'u', '(', .. as rest] ->
@@ -875,7 +885,7 @@ decodeString = toDecoder \bytes, @Rvn _, _ ->
             ['"', .. as rest] ->
                 {
                     result: state
-                    |> appendRange
+                    |> append_range
                     |> .acc
                     |> Str.fromUtf8
                     |> Result.mapErr (\_ -> TooShort),
@@ -945,22 +955,22 @@ expect
     actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
-decodeList : Decoder elem Rvn -> Decoder (List elem) Rvn
-decodeList = \elemDecoder ->
-    toDecoder \bytes, fmt, _ ->
-        decodeElem : List elem, List U8 -> DecodeResult (List elem)
-        decodeElem = \acc, remaining ->
-            { result, rest } = Decode.decodeWith remaining elemDecoder fmt
+decode_list : Decoder elem Rvn -> Decoder (List elem) Rvn
+decode_list = \elem_decoder ->
+    to_decoder \bytes, fmt, _ ->
+        decode_elem : List elem, List U8 -> DecodeResult (List elem)
+        decode_elem = \acc, remaining ->
+            { result, rest } = Decode.decodeWith remaining elem_decoder fmt
             when result is
                 Ok elem ->
                     { result: Ok (List.append acc elem), rest }
 
                 Err err ->
-                    { result: Err err, rest: skipWhitespace rest }
+                    { result: Err err, rest: skip_whitespace rest }
 
         step : List elem, List U8 -> DecodeResult (List elem)
         step = \acc, remaining ->
-            when decodeElem acc remaining is
+            when decode_elem acc remaining is
                 { rest: [']', .. as rest], result } ->
                     {
                         result: result
@@ -969,8 +979,8 @@ decodeList = \elemDecoder ->
                         rest,
                     }
 
-                { rest: [',', .. as rest], result: Ok newAcc } ->
-                    step newAcc rest
+                { rest: [',', .. as rest], result: Ok new_acc } ->
+                    step new_acc rest
 
                 { rest, result: _ } ->
                     { result: Err TooShort, rest }
@@ -1019,51 +1029,51 @@ expect
     actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
-skipDecoder : Decoder {} Rvn
-skipDecoder =
-    toDecoder \bytes, fmt, _ ->
-        mapToUnit = \{ result, rest } -> {
+skip_decoder : Decoder {} Rvn
+skip_decoder =
+    to_decoder \bytes, fmt, _ ->
+        map_to_unit = \{ result, rest } -> {
             result: Result.map result (\_ -> {}),
             rest,
         }
 
         when bytes is
             ['"', ..] ->
-                Decode.decodeWith bytes decodeString fmt
-                |> mapToUnit
+                Decode.decodeWith bytes decode_string fmt
+                |> map_to_unit
 
             ['0', 'b', ..] ->
-                Decode.decodeWith bytes decodeU64 fmt
-                |> mapToUnit
+                Decode.decodeWith bytes decode_u64 fmt
+                |> map_to_unit
 
             ['0', 'x', ..] ->
-                Decode.decodeWith bytes decodeU64 fmt
-                |> mapToUnit
+                Decode.decodeWith bytes decode_u64 fmt
+                |> map_to_unit
 
             ['-', ..] ->
-                Decode.decodeWith bytes decodeF64 fmt
-                |> mapToUnit
+                Decode.decodeWith bytes decode_f64 fmt
+                |> map_to_unit
 
-            [d, ..] if isDecimalDigit d ->
-                Decode.decodeWith bytes decodeF64 fmt
-                |> mapToUnit
+            [d, ..] if is_decimal_digit d ->
+                Decode.decodeWith bytes decode_f64 fmt
+                |> map_to_unit
 
             ['B', 'o', 'o', 'l', '.', ..] ->
-                Decode.decodeWith bytes decodeBool fmt
-                |> mapToUnit
+                Decode.decodeWith bytes decode_bool fmt
+                |> map_to_unit
 
             ['[', ..] ->
-                Decode.decodeWith bytes (decodeList skipDecoder) fmt
-                |> mapToUnit
+                Decode.decodeWith bytes (decode_list skip_decoder) fmt
+                |> map_to_unit
 
             ['(', ..] ->
                 Decode.decodeWith
                     bytes
-                    (decodeTuple {} (\_, _ -> Next skipDecoder) (\_ -> Ok {}))
+                    (decode_tuple {} (\_, _ -> Next skip_decoder) (\_ -> Ok {}))
                     fmt
 
             ['{', ..] ->
-                Decode.decodeWith bytes skipRecord fmt
+                Decode.decodeWith bytes skip_record fmt
 
             rest ->
                 # We will end up here in case of syntax errors, or when
@@ -1075,7 +1085,7 @@ expect
     bytes = Str.toUtf8 "0b01X"
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipDecoder compact
+    actual = Decode.decodeWith bytes skip_decoder compact
     expected == actual
 
 expect
@@ -1083,7 +1093,7 @@ expect
     bytes = Str.toUtf8 "0xf1X"
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipDecoder compact
+    actual = Decode.decodeWith bytes skip_decoder compact
     expected == actual
 
 expect
@@ -1091,7 +1101,7 @@ expect
     bytes = Str.toUtf8 "1_2X"
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipDecoder compact
+    actual = Decode.decodeWith bytes skip_decoder compact
     expected == actual
 
 expect
@@ -1099,7 +1109,7 @@ expect
     bytes = Str.toUtf8 "-0.1X"
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipDecoder compact
+    actual = Decode.decodeWith bytes skip_decoder compact
     expected == actual
 
 expect
@@ -1107,7 +1117,7 @@ expect
     bytes = Str.toUtf8 "Bool.trueX"
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipDecoder compact
+    actual = Decode.decodeWith bytes skip_decoder compact
     expected == actual
 
 expect
@@ -1115,7 +1125,7 @@ expect
     bytes = Str.toUtf8 "Bool.falseX"
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipDecoder compact
+    actual = Decode.decodeWith bytes skip_decoder compact
     expected == actual
 
 expect
@@ -1123,7 +1133,7 @@ expect
     bytes = Str.toUtf8 "[-0.1]X"
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipDecoder compact
+    actual = Decode.decodeWith bytes skip_decoder compact
     expected == actual
 
 expect
@@ -1131,7 +1141,7 @@ expect
     bytes = Str.toUtf8 "{a:1}X"
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipDecoder compact
+    actual = Decode.decodeWith bytes skip_decoder compact
     expected == actual
 
 expect
@@ -1139,52 +1149,52 @@ expect
     bytes = Str.toUtf8 "(0,1)X"
     expected : DecodeResult {}
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipDecoder compact
+    actual = Decode.decodeWith bytes skip_decoder compact
     expected == actual
 
-# I'd like to use skipDecoder for the record-skipping logic as well, but run
+# I'd like to use skip_decoder for the record-skipping logic as well, but run
 # into some errors that I think are compiler bugs, related to the `state`
 # parameter. So for now I have this separate implementation for skipping
 # records.
-skipRecord : Decoder {} Rvn
-skipRecord =
-    toDecoder \bytes, fmt, _ ->
-        decodeKey = \remaining ->
+skip_record : Decoder {} Rvn
+skip_record =
+    to_decoder \bytes, fmt, _ ->
+        decode_key = \remaining ->
             when List.splitFirst remaining ':' is
                 Ok { before, after } -> { result: Str.fromUtf8 before, rest: after }
                 Err _ -> { result: Err TooShort, rest: remaining }
 
-        decodeSingleField : List U8 -> DecodeResult {}
-        decodeSingleField = \remaining ->
-            keyResult = decodeKey remaining
-            when keyResult.result is
-                Err _ -> { result: Err TooShort, rest: skipWhitespace remaining }
-                Ok _ -> Decode.decodeWith keyResult.rest skipDecoder fmt
+        decode_single_field : List U8 -> DecodeResult {}
+        decode_single_field = \remaining ->
+            key_result = decode_key remaining
+            when key_result.result is
+                Err _ -> { result: Err TooShort, rest: skip_whitespace remaining }
+                Ok _ -> Decode.decodeWith key_result.rest skip_decoder fmt
 
-        decodeFields = \remaining ->
-            when decodeSingleField remaining is
+        decode_fields = \remaining ->
+            when decode_single_field remaining is
                 { rest: ['}', .. as rest], result: _ } ->
                     { result: Ok {}, rest }
 
                 { rest: [',', .. as rest], result: Ok _ } ->
-                    decodeFields rest
+                    decode_fields rest
 
                 { rest, result: _ } ->
                     { result: Err TooShort, rest }
 
         when bytes is
-            ['{', .. as remaining] -> decodeFields remaining
+            ['{', .. as remaining] -> decode_fields remaining
             rest -> { result: Err TooShort, rest }
 
-decodeRecord :
+decode_record :
     state,
     (state, Str -> [Keep (Decoder state Rvn), Skip]),
     (state, Rvn -> Result val DecodeError)
     -> Decoder val Rvn
-decodeRecord = \initialState, stepField, finalizer ->
-    toDecoder \bytes, fmt, _ ->
-        decodeKey = \remaining ->
-            keyLen =
+decode_record = \initial_state, step_field, finalizer ->
+    to_decoder \bytes, fmt, _ ->
+        decode_key = \remaining ->
+            key_len =
                 List.walkUntil
                     remaining
                     0
@@ -1193,32 +1203,32 @@ decodeRecord = \initialState, stepField, finalizer ->
                             ' ' | '\t' | '\n' | '#' | ':' -> Break count
                             _ -> Continue (count + 1)
                     )
-            { before, others } = List.splitAt remaining keyLen
-            when skipWhitespace others is
+            { before, others } = List.splitAt remaining key_len
+            when skip_whitespace others is
                 [':', .. as rest] ->
                     { result: Str.fromUtf8 before, rest }
 
                 _ ->
                     { result: Err TooShort, rest: remaining }
 
-        decodeValue : Str, state, List U8 -> DecodeResult state
-        decodeValue = \key, state, remaining ->
-            when stepField state key is
+        decode_value : Str, state, List U8 -> DecodeResult state
+        decode_value = \key, state, remaining ->
+            when step_field state key is
                 Keep decoder -> Decode.decodeWith remaining decoder fmt
                 Skip ->
-                    { result, rest } = Decode.decodeWith remaining skipDecoder fmt
+                    { result, rest } = Decode.decodeWith remaining skip_decoder fmt
                     when result is
                         Ok _ -> { result: Ok state, rest }
                         Err err -> { result: Err err, rest }
 
-        decodeSingleField : state, List U8 -> DecodeResult state
-        decodeSingleField = \state, remaining ->
-            when decodeKey (skipWhitespace remaining) is
+        decode_single_field : state, List U8 -> DecodeResult state
+        decode_single_field = \state, remaining ->
+            when decode_key (skip_whitespace remaining) is
                 { result: Err _, rest } -> { result: Err TooShort, rest }
-                { result: Ok key, rest } -> decodeValue key state rest
+                { result: Ok key, rest } -> decode_value key state rest
 
-        decodeFields = \state, remaining ->
-            when decodeSingleField state remaining is
+        decode_fields = \state, remaining ->
+            when decode_single_field state remaining is
                 { rest: ['}', .. as rest], result } ->
                     {
                         result: result
@@ -1227,15 +1237,15 @@ decodeRecord = \initialState, stepField, finalizer ->
                         rest,
                     }
 
-                { rest: [',', .. as rest], result: Ok newState } ->
-                    decodeFields newState rest
+                { rest: [',', .. as rest], result: Ok new_state } ->
+                    decode_fields new_state rest
 
                 { rest, result: _ } ->
                     { result: Err TooShort, rest }
 
         when bytes is
             ['{', .. as remaining] ->
-                decodeFields initialState remaining
+                decode_fields initial_state remaining
 
             rest ->
                 { result: Err TooShort, rest }
@@ -1250,7 +1260,7 @@ expect
     # Skips an empty record
     bytes = Str.toUtf8 "{}X"
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipRecord compact
+    actual = Decode.decodeWith bytes skip_record compact
     expected == actual
 
 expect
@@ -1264,7 +1274,7 @@ expect
     # Skips an empty record with space between
     bytes = Str.toUtf8 "{ }X"
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipRecord compact
+    actual = Decode.decodeWith bytes skip_record compact
     expected == actual
 
 expect
@@ -1278,7 +1288,7 @@ expect
     # Skips a record with some fields
     bytes = Str.toUtf8 "{a:1,b:2}X"
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipRecord compact
+    actual = Decode.decodeWith bytes skip_record compact
     expected == actual
 
 expect
@@ -1292,7 +1302,7 @@ expect
     # Skips records containing whitespace around the record and elements
     bytes = Str.toUtf8 " { a : 1 , b : 2 } X"
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipRecord compact
+    actual = Decode.decodeWith bytes skip_record compact
     expected == actual
 
 expect
@@ -1306,7 +1316,7 @@ expect
     # Skips a record with a comment directly after key
     bytes = Str.toUtf8 "{a#hi\n : 1}X"
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipRecord compact
+    actual = Decode.decodeWith bytes skip_record compact
     expected == actual
 
 expect
@@ -1320,7 +1330,7 @@ expect
     # Skips a record with a trailing comma on the last field
     bytes = Str.toUtf8 "{a:1,}X"
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipRecord compact
+    actual = Decode.decodeWith bytes skip_record compact
     expected == actual
 
 expect
@@ -1334,38 +1344,38 @@ expect
     # Skips records with fields not present in the expected type
     bytes = Str.toUtf8 "{a:1}X"
     expected = { result: Ok {}, rest: ['X'] }
-    actual = Decode.decodeWith bytes skipRecord compact
+    actual = Decode.decodeWith bytes skip_record compact
     expected == actual
 
-decodeTuple :
+decode_tuple :
     state,
     (state, U64 -> [Next (Decoder state Rvn), TooLong]),
     (state -> Result val DecodeError)
     -> Decoder val Rvn
-decodeTuple = \initialState, stepField, finalizer ->
-    toDecoder \bytes, fmt, _ ->
-        decodeSingleField : U64, state, List U8 -> DecodeResult state
-        decodeSingleField = \index, state, remaining ->
-            when stepField state index is
+decode_tuple = \initial_state, step_field, finalizer ->
+    to_decoder \bytes, fmt, _ ->
+        decode_single_field : U64, state, List U8 -> DecodeResult state
+        decode_single_field = \index, state, remaining ->
+            when step_field state index is
                 Next decoder -> Decode.decodeWith remaining decoder fmt
                 TooLong -> { result: Err TooShort, rest: remaining }
 
-        decodeFields = \index, state, remaining ->
-            fieldResult = decodeSingleField index state remaining
-            when fieldResult.result is
-                Ok newState ->
-                    when fieldResult.rest is
-                        [')', .. as rest] -> { result: finalizer newState, rest }
-                        [',', .. as rest] -> decodeFields (index + 1) newState rest
+        decode_fields = \index, state, remaining ->
+            field_result = decode_single_field index state remaining
+            when field_result.result is
+                Ok new_state ->
+                    when field_result.rest is
+                        [')', .. as rest] -> { result: finalizer new_state, rest }
+                        [',', .. as rest] -> decode_fields (index + 1) new_state rest
                         rest -> { result: Err TooShort, rest }
 
                 Err err ->
-                    when skipWhitespace remaining is
+                    when skip_whitespace remaining is
                         [')', .. as rest] -> { result: finalizer state, rest }
-                        _ -> { result: Err err, rest: fieldResult.rest }
+                        _ -> { result: Err err, rest: field_result.rest }
 
         when bytes is
-            ['(', .. as remaining] -> decodeFields 0 initialState remaining
+            ['(', .. as remaining] -> decode_fields 0 initial_state remaining
             rest -> { result: Err TooShort, rest }
 
 expect
@@ -1412,11 +1422,11 @@ expect
     actual = Decode.fromBytesPartial bytes compact
     expected == actual
 
-skipWhitespace : List U8 -> List U8
-skipWhitespace = \bytes -> (skipWhitespaceIndent bytes).rest
+skip_whitespace : List U8 -> List U8
+skip_whitespace = \bytes -> (skip_whitespace_indent bytes).rest
 
-skipWhitespaceIndent : List U8 -> { indent : U64, rest : List U8 }
-skipWhitespaceIndent = \bytes ->
+skip_whitespace_indent : List U8 -> { indent : U64, rest : List U8 }
+skip_whitespace_indent = \bytes ->
     step : { indent : U64, rest : List U8 } -> { indent : U64, rest : List U8 }
     step = \acc ->
         when acc.rest is
@@ -1440,71 +1450,71 @@ expect
     # skips spaces
     bytes = Str.toUtf8 "  X"
     expected = { indent: 2, rest: ['X'] }
-    actual = skipWhitespaceIndent bytes
+    actual = skip_whitespace_indent bytes
     expected == actual
 
 expect
     # skips tabs
     bytes = Str.toUtf8 "\t\tX"
     expected = { indent: 4, rest: ['X'] }
-    actual = skipWhitespaceIndent bytes
+    actual = skip_whitespace_indent bytes
     expected == actual
 
 expect
     # skips newlinwes, which reset the indent count
     bytes = Str.toUtf8 " \n  X"
     expected = { indent: 2, rest: ['X'] }
-    actual = skipWhitespaceIndent bytes
+    actual = skip_whitespace_indent bytes
     expected == actual
 
 expect
     # skips comments up to the end of the line
     bytes = Str.toUtf8 " #c\n X"
     expected = { indent: 1, rest: ['X'] }
-    actual = skipWhitespaceIndent bytes
+    actual = skip_whitespace_indent bytes
     expected == actual
 
-# A version of toDecoder that drops surrounding whitespace.
-toDecoder :
+# A version of to_decoder that drops surrounding whitespace.
+to_decoder :
     (List U8, fmt, U64 -> DecodeResult val)
     -> Decoder val fmt
-toDecoder = \decodeFn ->
+to_decoder = \decode_fn ->
     Decode.custom \bytes, fmt ->
-        { rest, indent } = skipWhitespaceIndent bytes
-        decodeResult = decodeFn rest fmt indent
-        when decodeResult.result is
-            Err _ -> decodeResult
+        { rest, indent } = skip_whitespace_indent bytes
+        decode_result = decode_fn rest fmt indent
+        when decode_result.result is
+            Err _ -> decode_result
             Ok val ->
                 {
                     result: Ok val,
-                    rest: (skipWhitespaceIndent decodeResult.rest).rest,
+                    rest: (skip_whitespace_indent decode_result.rest).rest,
                 }
 
-upIndent : Rvn -> Rvn
-upIndent = \@Rvn config ->
+up_indent : Rvn -> Rvn
+up_indent = \@Rvn config ->
     @Rvn { config & indent: config.indent + 1 }
 
-appendIfCompact : List U8, Rvn, U8 -> List U8
-appendIfCompact = \bytes, @Rvn { format }, byte ->
+append_if_compact : List U8, Rvn, U8 -> List U8
+append_if_compact = \bytes, @Rvn { format }, byte ->
     when format is
         Compact -> List.append bytes byte
         Pretty -> bytes
 
-appendIfPretty : List U8, Rvn, U8 -> List U8
-appendIfPretty = \bytes, @Rvn { format }, byte ->
+append_if_pretty : List U8, Rvn, U8 -> List U8
+append_if_pretty = \bytes, @Rvn { format }, byte ->
     when format is
         Compact -> bytes
         Pretty -> List.append bytes byte
 
-appendIndent : List U8, Rvn -> List U8
-appendIndent = \bytes, @Rvn { format, indent } ->
+append_indent : List U8, Rvn -> List U8
+append_indent = \bytes, @Rvn { format, indent } ->
     when format is
         Compact -> bytes
         Pretty -> List.concat bytes (List.repeat ' ' (indent * 4))
 
-setInTag : Rvn, Bool -> Rvn
-setInTag = \@Rvn config, inTag ->
-    @Rvn { config & inTag }
+set_in_tag : Rvn, Bool -> Rvn
+set_in_tag = \@Rvn config, in_tag ->
+    @Rvn { config & in_tag }
 
 expect
     # Decode the README.md example (kind of, tag decoding not yet supported).
