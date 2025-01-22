@@ -9,18 +9,23 @@ on:
 jobs:
   bundle-and-release:
     name: Bundle and release library
-    runs-on: ubuntu-latest
+    runs-on: [ubuntu-24.04]
     permissions:
       contents: write # Used to upload the bundled library
     steps:
-      - name: Check out the repository
-        uses: actions/checkout@v3
-      - name: Install Roc
-        uses: hasnep/setup-roc@main
-        with:
-          roc-version: nightly
+      - uses: actions/checkout@v3
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: prepare nix environment
+        run: nix develop --command roc version
+
       - name: Bundle and release the library
-        uses: hasnep/bundle-roc-library@main
+        run: nix develop --command roc build --bundle .tar.br package/main.roc
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
         with:
-          library: package/main.roc # Path to the library's entrypoint
-          token: ${{ github.token }}
+          file: 'package/*.tar.br'
+          release_name: 'nightly'
+          file_glob: true
