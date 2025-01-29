@@ -3,7 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    roc.url = "github:roc-lang/roc";
+    roc.url = "github:roc-lang/roc/0.0.0-alpha2-rolling";
   };
 
   outputs =
